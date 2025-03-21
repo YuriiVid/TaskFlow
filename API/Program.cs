@@ -21,7 +21,7 @@ builder
     .AddEnvironmentVariables();
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
 // Database Connection
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -60,9 +60,7 @@ builder
             // validate the token based on the key we have provided inside appsettings.development.json JWT:Key
             ValidateIssuerSigningKey = true,
             // the issuer singning key based on JWT:Key
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])
-            ),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])),
             // the issuer which in here is the api project url we are using
             ValidIssuer = builder.Configuration["JWT:Issuer"],
             // validate the issuer (who ever is issuing the JWT)
@@ -81,10 +79,7 @@ var app = builder.Build();
 
 app.UseCors(opt =>
 {
-    opt.AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials()
-        .WithOrigins(builder.Configuration["JWT:ClientUrl"]);
+    opt.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins(builder.Configuration["JWT:ClientUrl"]);
 });
 
 // Configure the HTTP request pipeline.
