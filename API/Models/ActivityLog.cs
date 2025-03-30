@@ -6,7 +6,7 @@ public class ActivityLog
     public required string Action { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public long BoardId { get; set; }
-    public required Board Board { get; set; }
+    public Board Board { get; set; } = null!;
     public int UserId { get; set; }
-    public required AppUser User { get; set; }
+    public AppUser User { get; set; } = null!;
 }
