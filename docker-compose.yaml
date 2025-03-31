@@ -21,7 +21,7 @@ services:
       - ~/.aspnet/https:/https:ro
       - ./API:/source
       - /source/obj/ # <- directory won't be mounted
-      - /source/bin/ # <- directory won't be mounted
+      - /source/bin/
     logging:
       driver: "json-file"
       options:
@@ -38,7 +38,11 @@ services:
         condition: service_healthy
     env_file:
       - ./API/.config/api.env
-    restart: "no"
+    volumes:
+      - ./API:/source
+      - /source/obj/ 
+      - /source/bin/ 
+    restart: no
 
   db:
     container_name: tms_pg_db
