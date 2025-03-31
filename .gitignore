@@ -549,5 +549,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# .env files
 API/.config/api.env
 API/.config/db.env
+
+# 
+API/Uploads/*
+API/Templates/Email/Build/*

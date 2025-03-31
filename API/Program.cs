@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using API.Models;
 using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,7 +12,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.AddConsole();
 
-// Add services to the container.
 builder
     .Configuration.AddJsonFile(
         $"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json",
@@ -20,10 +20,17 @@ builder
     )
     .AddEnvironmentVariables();
 
-builder.Services.AddControllers();
+// Enum convertertion to be able to send enums as strings in requests and receive them as enums in the backend
+builder
+    .Services.AddControllers()
+    .AddJsonOptions(opt =>
+    {
+        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
+// OpenAPI Setup for better Scalar managment in dev
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
-// Database Connection
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -31,7 +38,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
-// Identity Setup
 builder
     .Services.AddIdentityCore<AppUser>(o =>
     {
@@ -48,25 +54,20 @@ builder
 builder.Services.AddScoped<JWTService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<IBoardValidationService, BoardValidationService>();
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 builder.Services.AddCors();
 
-// be able to authenticate users using JWT
 builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            // validate the token based on the key we have provided inside appsettings.development.json JWT:Key
             ValidateIssuerSigningKey = true,
-            // the issuer singning key based on JWT:Key
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])),
-            // the issuer which in here is the api project url we are using
             ValidIssuer = builder.Configuration["JWT:Issuer"],
-            // validate the issuer (who ever is issuing the JWT)
             ValidateIssuer = true,
-            // don't validate audience (angular side)
             ValidateAudience = false,
         };
     });
@@ -83,7 +84,6 @@ app.UseCors(opt =>
     opt.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins(builder.Configuration["JWT:ClientUrl"]);
 });
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
