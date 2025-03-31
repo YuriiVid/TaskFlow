@@ -47,6 +47,7 @@ builder
 
 builder.Services.AddScoped<JWTService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<IBoardValidationService, BoardValidationService>();
 
 builder.Services.AddCors();
 
@@ -100,4 +101,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.Run();
