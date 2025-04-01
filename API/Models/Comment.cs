@@ -4,7 +4,8 @@ public class Comment
 {
     public long Id { get; set; }
     public required string Content { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
     public long CardId { get; set; }
     public Card Card { get; set; } = null!;
     public int UserId { get; set; }
