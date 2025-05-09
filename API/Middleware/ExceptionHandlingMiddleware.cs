@@ -1,5 +1,7 @@
 using API.Exceptions;
 
+namespace API.Middleware;
+
 public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
@@ -12,8 +14,9 @@ public class ExceptionHandlingMiddleware
     private async Task WriteErrorResponse(HttpContext context, int statusCode, string message)
     {
         context.Response.StatusCode = statusCode;
-        context.Response.ContentType = "text/plain";
-        await context.Response.WriteAsync(message);
+        context.Response.ContentType = "text/json";
+        var response = new { message };
+        await context.Response.WriteAsJsonAsync(response);
     }
 
     public async Task Invoke(HttpContext context)
@@ -38,6 +41,7 @@ public class ExceptionHandlingMiddleware
                         StatusCodes.Status500InternalServerError,
                         "An unexpected error occurred."
                     );
+                    Console.WriteLine(ex.Message);
                     break;
             }
         }

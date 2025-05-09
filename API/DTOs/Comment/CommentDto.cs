@@ -7,5 +7,5 @@ public class CommentDto
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
     public long CardId { get; set; }
-    public int UserId { get; set; }
+    public UserDto User { get; set; } = null!;
 }

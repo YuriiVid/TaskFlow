@@ -1,6 +1,6 @@
 namespace API.Models;
 
-public class Collumn
+public class Column
 {
     public long Id { get; set; }
     public required string Title { get; set; }

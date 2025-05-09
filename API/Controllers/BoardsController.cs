@@ -38,16 +38,16 @@ public class BoardsController : Controller
     public async Task<ActionResult<FullBoardDto>> GetBoard(long id)
     {
         var board = await _context
-            .Boards.Include(b => b.Collumns)
+            .Boards.Include(b => b.Columns)
             .ThenInclude(col => col.Cards)
             .ThenInclude(c => c.Labels)
-            .Include(b => b.Collumns)
+            .Include(b => b.Columns)
             .ThenInclude(col => col.Cards)
             .ThenInclude(c => c.AssignedUsers)
-            .Include(b => b.Collumns)
+            .Include(b => b.Columns)
             .ThenInclude(col => col.Cards)
             .ThenInclude(c => c.Attachments)
-            .Include(b => b.Collumns)
+            .Include(b => b.Columns)
             .ThenInclude(col => col.Cards)
             .ThenInclude(c => c.Comments)
             .Include(b => b.Members)
@@ -68,8 +68,8 @@ public class BoardsController : Controller
             })
             .ToList();
 
-        List<FullCollumnDto> boardCollumns = board
-            .Collumns.Select(col => new FullCollumnDto
+        List<FullColumnDto> boardColumns = board
+            .Columns.Select(col => new FullColumnDto
             {
                 Id = col.Id,
                 Title = col.Title,
@@ -102,7 +102,7 @@ public class BoardsController : Controller
             Id = board.Id,
             Title = board.Title,
             Description = board.Description,
-            Collumns = boardCollumns,
+            Columns = boardColumns,
             Members = boardMembers,
         };
 

@@ -1,6 +1,6 @@
 namespace API.DTOs;
 
-public class FullCollumnDto
+public class FullColumnDto
 {
     public long Id { get; set; }
     public required string Title { get; set; }

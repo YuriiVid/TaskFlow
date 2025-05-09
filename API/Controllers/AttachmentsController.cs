@@ -29,12 +29,13 @@ public class AttachmentsController : Controller
     }
 
     [HttpGet]
+    // TODO:implement size
     public async Task<ActionResult<IList<AttachmentDto>>> GetAttachments(long boardId, long cardId)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var attachments = await _context
-            .Attachments.Where(a => a.Card.Collumn.BoardId == boardId && a.CardId == cardId)
+            .Attachments.Where(a => a.Card.Column.BoardId == boardId && a.CardId == cardId)
             .Select(a => new AttachmentDto
             {
                 Id = a.Id,
@@ -52,7 +53,7 @@ public class AttachmentsController : Controller
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var attachment = await _context
-            .Attachments.Where(a => a.Id == id && a.CardId == cardId && a.Card.Collumn.BoardId == boardId)
+            .Attachments.Where(a => a.Id == id && a.CardId == cardId && a.Card.Column.BoardId == boardId)
             .Select(a => new AttachmentDto
             {
                 Id = a.Id,
@@ -79,9 +80,7 @@ public class AttachmentsController : Controller
 
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var card = await _context
-            .Cards.Where(c => c.Id == cardId && c.Collumn.BoardId == boardId)
-            .FirstOrDefaultAsync();
+        var card = await _context.Cards.Where(c => c.Id == cardId && c.Column.BoardId == boardId).FirstOrDefaultAsync();
 
         if (card == null)
         {
@@ -122,7 +121,7 @@ public class AttachmentsController : Controller
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var attachment = await _context
-            .Attachments.Where(a => a.Id == id && a.CardId == cardId && a.Card.Collumn.BoardId == boardId)
+            .Attachments.Where(a => a.Id == id && a.CardId == cardId && a.Card.Column.BoardId == boardId)
             .FirstOrDefaultAsync();
 
         if (attachment == null)

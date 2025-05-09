@@ -1,4 +1,5 @@
 using API.SeedConfiguration;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,7 +17,7 @@ public partial class AppDbContext : IdentityDbContext<AppUser, Role, int>
     public DbSet<Card> Cards { get; set; }
     public DbSet<CardAssignment> CardAssignments { get; set; }
     public DbSet<CardLabel> CardLabels { get; set; }
-    public DbSet<Collumn> Collumns { get; set; }
+    public DbSet<Column> Columns { get; set; }
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Label> Labels { get; set; }
 

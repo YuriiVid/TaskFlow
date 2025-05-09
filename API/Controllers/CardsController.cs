@@ -32,7 +32,7 @@ public class CardsController : Controller
             .Include(c => c.Attachments)
             .Include(c => c.AssignedUsers)
             .Include(c => c.Comments)
-            .Where(c => c.Collumn.BoardId == boardId)
+            .Where(c => c.Column.BoardId == boardId)
             .ToListAsync();
 
         List<BriefCardDto> briefCards = cards
@@ -73,8 +73,9 @@ public class CardsController : Controller
             .Include(c => c.Attachments)
             .Include(c => c.AssignedUsers)
             .Include(c => c.Comments)
-            .Include(c => c.Collumn)
-            .Where(c => c.Id == id && c.Collumn.BoardId == boardId)
+            .ThenInclude(com => com.User)
+            .Include(c => c.Column)
+            .Where(c => c.Id == id && c.Column.BoardId == boardId)
             .FirstOrDefaultAsync();
 
         if (card == null)
@@ -88,7 +89,7 @@ public class CardsController : Controller
             Title = card.Title,
             Description = card.Description,
             DueDate = card.DueDate,
-            CollumnId = card.CollumnId,
+            ColumnId = card.ColumnId,
             Attachments = card
                 .Attachments.Select(a => new AttachmentDto
                 {
@@ -112,7 +113,15 @@ public class CardsController : Controller
                     Content = com.Content,
                     CreatedAt = com.CreatedAt,
                     CardId = com.CardId,
-                    UserId = com.UserId,
+                    User = new UserDto
+                    {
+                        Id = com.User.Id,
+                        FirstName = com.User.FirstName,
+                        LastName = com.User.LastName,
+                        ProfilePictureUrl = com.User.ProfilePictureUrl,
+                        UserName = com.User.UserName,
+                        Email = com.User.Email,
+                    },
                 })
                 .ToList(),
             AssignedTo = card
@@ -140,7 +149,16 @@ public class CardsController : Controller
 
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var card = new Card { Title = cardDto.Title, CollumnId = cardDto.CollumnId };
+        var maxPosition =
+            await _context.Cards.Where(c => c.ColumnId == cardDto.ColumnId).MaxAsync(c => c.Position) ?? -1;
+
+        var card = new Card
+        {
+            Title = cardDto.Title,
+            ColumnId = cardDto.ColumnId,
+            Position = maxPosition + 1,
+        };
+
         _context.Cards.Add(card);
         await _context.SaveChangesAsync();
 
@@ -157,7 +175,7 @@ public class CardsController : Controller
 
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var card = await _context.Cards.Where(c => c.Id == id && c.Collumn.BoardId == boardId).FirstOrDefaultAsync();
+        var card = await _context.Cards.Where(c => c.Id == id && c.Column.BoardId == boardId).FirstOrDefaultAsync();
         if (card == null)
         {
             return NotFound("Card not found");
@@ -166,8 +184,6 @@ public class CardsController : Controller
         card.Title = cardDto.Title;
         card.Description = cardDto.Description;
         card.DueDate = cardDto.DueDate;
-        card.CollumnId = cardDto.CollumnId;
-        card.Position = cardDto.Position;
 
         await _context.SaveChangesAsync();
         return NoContent();
@@ -178,7 +194,7 @@ public class CardsController : Controller
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var card = await _context.Cards.Where(c => c.Id == id && c.Collumn.BoardId == boardId).FirstOrDefaultAsync();
+        var card = await _context.Cards.Where(c => c.Id == id && c.Column.BoardId == boardId).FirstOrDefaultAsync();
         if (card == null)
         {
             return NotFound("Card not found");

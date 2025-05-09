@@ -9,47 +9,47 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers;
 
-[Route("api/boards/{boardId}/collumns")]
+[Route("api/boards/{boardId}/columns")]
 [Authorize]
 [ApiController]
-public class CollumnsController : Controller
+public class ColumnsController : Controller
 {
     private readonly AppDbContext _context;
     private readonly IBoardValidationService _boardValidationService;
 
-    public CollumnsController(AppDbContext context, IBoardValidationService boardValidator)
+    public ColumnsController(AppDbContext context, IBoardValidationService boardValidator)
     {
         _boardValidationService = boardValidator;
         _context = context;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IList<BriefCollumnDto>>> GetCollumns(long boardId)
+    public async Task<ActionResult<IList<BriefColumnDto>>> GetColumns(long boardId)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
-        var collumns = await _context.Collumns.Include(c => c.Cards).Where(c => c.BoardId == boardId).ToListAsync();
+        var columns = await _context.Columns.Include(c => c.Cards).Where(c => c.BoardId == boardId).ToListAsync();
 
-        List<BriefCollumnDto> briefCollumns = collumns
-            .Select(c => new BriefCollumnDto
+        List<BriefColumnDto> briefColumns = columns
+            .Select(c => new BriefColumnDto
             {
                 Id = c.Id,
                 Title = c.Title,
                 Cards = c.Cards.Select(card => ResolveCardUrl(card, boardId)).ToList(),
             })
             .ToList();
-        return Ok(briefCollumns);
+        return Ok(briefColumns);
     }
 
     private string ResolveCardUrl(Card card, long boardId) =>
         Url.ActionLink(nameof(CardsController.GetCard), "Cards", new { boardId, cardId = card.Id });
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<FullBoardDto>> GetCollumn(long boardId, long id)
+    public async Task<ActionResult<FullBoardDto>> GetColumn(long boardId, long id)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var collumn = await _context
-            .Collumns.Include(c => c.Cards)
+        var column = await _context
+            .Columns.Include(c => c.Cards)
             .ThenInclude(card => card.Labels)
             .Include(c => c.Cards)
             .ThenInclude(card => card.Attachments)
@@ -60,16 +60,16 @@ public class CollumnsController : Controller
             .Where(c => c.Id == id && c.BoardId == boardId)
             .FirstOrDefaultAsync();
 
-        if (collumn == null)
+        if (column == null)
         {
-            return NotFound("Collumn not found");
+            return NotFound("Column not found");
         }
 
-        var fullCollumn = new FullCollumnDto
+        var fullColumn = new FullColumnDto
         {
-            Id = collumn.Id,
-            Title = collumn.Title,
-            Cards = collumn
+            Id = column.Id,
+            Title = column.Title,
+            Cards = column
                 .Cards.Select(card => new BriefCardDto
                 {
                     Id = card.Id,
@@ -92,31 +92,31 @@ public class CollumnsController : Controller
                 .ToList(),
         };
 
-        return Ok(fullCollumn);
+        return Ok(fullColumn);
     }
 
     private string GetUserLink(AppUser user) =>
         Url.ActionLink(action: nameof(UsersController.GetUser), controller: "Users", values: new { id = user.Id });
 
     [HttpPost]
-    public async Task<ActionResult<BriefCollumnDto>> CreateCollumn(long boardId, UpsertCollumnDto dto)
+    public async Task<ActionResult<BriefColumnDto>> CreateColumn(long boardId, UpsertColumnDto dto)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var column = new Collumn { Title = dto.Title, BoardId = boardId };
+        var column = new Column { Title = dto.Title, BoardId = boardId };
 
-        _context.Collumns.Add(column);
+        _context.Columns.Add(column);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetCollumn), new { boardId, id = column.Id }, new { column.Id, column.Title });
+        return CreatedAtAction(nameof(GetColumn), new { boardId, id = column.Id }, new { column.Id, column.Title });
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateCollumn(long boardId, long id, UpsertCollumnDto dto)
+    public async Task<IActionResult> UpdateColumn(long boardId, long id, UpsertColumnDto dto)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var column = await _context.Collumns.Where(c => c.Id == id && c.BoardId == boardId).FirstOrDefaultAsync();
+        var column = await _context.Columns.Where(c => c.Id == id && c.BoardId == boardId).FirstOrDefaultAsync();
 
         if (column == null)
         {
@@ -130,18 +130,18 @@ public class CollumnsController : Controller
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteCollumn(long boardId, long id)
+    public async Task<ActionResult> DeleteColumn(long boardId, long id)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var column = await _context.Collumns.Where(c => c.Id == id && c.BoardId == boardId).FirstOrDefaultAsync();
+        var column = await _context.Columns.Where(c => c.Id == id && c.BoardId == boardId).FirstOrDefaultAsync();
 
         if (column == null)
         {
             return NotFound("Column not found");
         }
 
-        _context.Collumns.Remove(column);
+        _context.Columns.Remove(column);
         await _context.SaveChangesAsync();
 
         return NoContent();
