@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/auth")]
 [ApiController]
 public class AuthController : ControllerBase
 {
@@ -21,6 +21,7 @@ public class AuthController : ControllerBase
     private readonly SignInManager<AppUser> _signInManager;
     private readonly JWTService _jwtService;
     private readonly EmailService _emailService;
+    private readonly AppDbContext _context;
 
     public AuthController(
         IConfiguration config,
@@ -28,26 +29,55 @@ public class AuthController : ControllerBase
         JWTService jwtService,
         SignInManager<AppUser> signInManager,
         EmailService emailService,
-        ILogger<AuthController> logger
+        ILogger<AuthController> logger,
+        AppDbContext context
     )
     {
         _config = config;
         _userManager = userManager;
-        _signInManager = signInManager;
         _jwtService = jwtService;
+        _signInManager = signInManager;
         _emailService = emailService;
         _logger = logger;
+        _context = context;
     }
 
-    [Authorize]
     [HttpGet("refresh-user-token")]
     public async Task<IActionResult> RefreshUserToken()
     {
-        var user = await _userManager.FindByNameAsync(User.FindFirstValue(ClaimTypes.Name));
+        if (!Request.Cookies.TryGetValue("refreshToken", out var incomingToken))
+            return Unauthorized("No token found");
 
-        return await _userManager.IsLockedOutAsync(user)
-            ? Unauthorized("You have been locked out")
-            : Ok(await CreateAppUserDto(user));
+        var tokenEntry = await _context.UserTokens.SingleOrDefaultAsync(t =>
+            t.LoginProvider == "RefreshToken" && t.Name == "MyAppRefreshToken" && t.Value == incomingToken
+        );
+        if (tokenEntry == null)
+            return Unauthorized("Invalid token");
+
+        var user = await _userManager.FindByIdAsync(tokenEntry.UserId.ToString());
+        if (user == null)
+            return Unauthorized("No user found");
+
+        if (!_jwtService.IsRefreshTokenValid(incomingToken))
+        {
+            await _userManager.RemoveAuthenticationTokenAsync(user, "RefreshToken", "MyAppRefreshToken");
+            return Unauthorized();
+        }
+
+        var newRefresh = await _jwtService.CreateRefreshTokenAsync(user);
+        Response.Cookies.Append(
+            "refreshToken",
+            newRefresh,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None, // allow cross-site from your SPA
+                Expires = DateTime.UtcNow.AddDays(_config.GetValue<int>("JWT:RefreshTokenExpiresInDays")),
+            }
+        );
+
+        return await _userManager.IsLockedOutAsync(user) ? Unauthorized() : Ok(await CreateAppUserDto(user));
     }
 
     [HttpPost("register")]
@@ -94,7 +124,6 @@ public class AuthController : ControllerBase
         }
     }
 
-    // POST: api/auth/login
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto model)
     {
@@ -116,6 +145,19 @@ public class AuthController : ControllerBase
                 $"Your account has been locked due to too many failed attempts. You should wait until {user.LockoutEnd} (UTC time) to be able to login"
             );
         }
+
+        var refresh = await _jwtService.CreateRefreshTokenAsync(user);
+        Response.Cookies.Append(
+            "refreshToken",
+            refresh,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddDays(_config.GetValue<int>("JWT:RefreshTokenExpiresInDays")),
+            }
+        );
 
         return result.Succeeded ? Ok(await CreateAppUserDto(user)) : Unauthorized("Invalid username or password");
     }
@@ -172,7 +214,7 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpPost("forgot-username-or-password/{email}")]
+    [HttpPost("forgot-password/{email}")]
     public async Task<IActionResult> ForgotUsernameOrPassword(string email)
     {
         if (string.IsNullOrEmpty(email))
@@ -224,17 +266,41 @@ public class AuthController : ControllerBase
         }
     }
 
-    private async Task<bool> CheckEmailExistsAsync(string email)
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
     {
-        return await _userManager.Users.AnyAsync(x => x.Email == email.ToLower());
+        var username = User.FindFirstValue(ClaimTypes.Name);
+        var user = await _userManager.FindByIdAsync(username);
+        if (user != null)
+        {
+            await _userManager.RemoveAuthenticationTokenAsync(user, "RefreshToken", "MyAppRefreshToken");
+        }
+
+        Response.Cookies.Delete("refreshToken");
+        return Ok(new { title = "Success", message = "Logged out" });
     }
 
-    private async Task<AppUserDto> CreateAppUserDto(AppUser appUser)
+    private async Task<bool> CheckEmailExistsAsync(string email)
     {
-        return new AppUserDto
+        return await _userManager.Users.AnyAsync(x =>
+            x.Email!.Equals(email, StringComparison.CurrentCultureIgnoreCase)
+        );
+    }
+
+    private async Task<AuthUserDto> CreateAppUserDto(AppUser appUser)
+    {
+        return new AuthUserDto
         {
-            FirstName = appUser.FirstName,
-            LastName = appUser.LastName,
+            User = new UserDto
+            {
+                Id = appUser.Id,
+                FirstName = appUser.FirstName,
+                LastName = appUser.LastName,
+                Email = appUser.Email,
+                UserName = appUser.UserName,
+                ProfilePictureUrl = appUser.ProfilePictureUrl,
+            },
             JWT = await _jwtService.CreateJWT(appUser),
         };
     }

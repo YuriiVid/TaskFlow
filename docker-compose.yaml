@@ -40,13 +40,13 @@ services:
       - ./API/.config/api.env
     volumes:
       - ./API:/source
-      - /source/obj/ 
-      - /source/bin/ 
+      - /source/obj/
+      - /source/bin/
     restart: no
 
   db:
-    container_name: tms_pg_db
     image: tms_pg_db
+    container_name: tms_pg_db
     restart: always
     build:
       context: ./API
@@ -76,8 +76,7 @@ services:
       dockerfile: front.Dockerfile
     restart: always
     depends_on:
-      api:
-        condition: service_completed_successfully
+      - api
     ports:
       - 3000:3000
     env_file:

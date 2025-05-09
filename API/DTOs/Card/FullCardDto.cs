@@ -6,7 +6,7 @@ public class FullCardDto
     public required string Title { get; set; }
     public DateTime? DueDate { get; set; }
     public string Description { get; set; } = string.Empty;
-    public long CollumnId { get; set; }
+    public long ColumnId { get; set; }
     public IList<AttachmentDto> Attachments { get; set; } = new List<AttachmentDto>();
     public IList<LabelDto> Labels { get; set; } = new List<LabelDto>();
     public IList<UserDto> AssignedTo { get; set; } = new List<UserDto>();

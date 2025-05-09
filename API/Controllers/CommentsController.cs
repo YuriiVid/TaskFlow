@@ -29,7 +29,7 @@ public class CommentsController : Controller
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var comments = await _context
-            .Comments.Where(c => c.Card.Collumn.BoardId == boardId && c.CardId == cardId)
+            .Comments.Where(c => c.Card.Column.BoardId == boardId && c.CardId == cardId)
             .Select(c => new CommentDto
             {
                 Id = c.Id,
@@ -37,7 +37,15 @@ public class CommentsController : Controller
                 CreatedAt = c.CreatedAt,
                 UpdatedAt = c.UpdatedAt,
                 CardId = c.CardId,
-                UserId = c.UserId,
+                User = new UserDto
+                {
+                    Id = c.User.Id,
+                    FirstName = c.User.FirstName,
+                    LastName = c.User.LastName,
+                    ProfilePictureUrl = c.User.ProfilePictureUrl,
+                    UserName = c.User.UserName,
+                    Email = c.User.Email,
+                },
             })
             .ToListAsync();
 
@@ -50,7 +58,7 @@ public class CommentsController : Controller
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var comment = await _context
-            .Comments.Where(c => c.Id == id && c.CardId == cardId && c.Card.Collumn.BoardId == boardId)
+            .Comments.Where(c => c.Id == id && c.CardId == cardId && c.Card.Column.BoardId == boardId)
             .Select(c => new CommentDto
             {
                 Id = c.Id,
@@ -58,7 +66,15 @@ public class CommentsController : Controller
                 CreatedAt = c.CreatedAt,
                 UpdatedAt = c.UpdatedAt,
                 CardId = c.CardId,
-                UserId = c.UserId,
+                User = new UserDto
+                {
+                    Id = c.User.Id,
+                    FirstName = c.User.FirstName,
+                    LastName = c.User.LastName,
+                    ProfilePictureUrl = c.User.ProfilePictureUrl,
+                    UserName = c.User.UserName,
+                    Email = c.User.Email,
+                },
             })
             .FirstOrDefaultAsync();
 
@@ -79,9 +95,7 @@ public class CommentsController : Controller
         }
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var card = await _context
-            .Cards.Where(c => c.Id == cardId && c.Collumn.BoardId == boardId)
-            .FirstOrDefaultAsync();
+        var card = await _context.Cards.Where(c => c.Id == cardId && c.Column.BoardId == boardId).FirstOrDefaultAsync();
 
         if (card == null)
         {
@@ -113,7 +127,6 @@ public class CommentsController : Controller
                 CreatedAt = comment.CreatedAt,
                 UpdatedAt = comment.UpdatedAt,
                 CardId = comment.CardId,
-                UserId = comment.UserId,
             }
         );
     }
@@ -129,7 +142,7 @@ public class CommentsController : Controller
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var comment = await _context
-            .Comments.Where(c => c.Id == id && c.CardId == cardId && c.Card.Collumn.BoardId == boardId)
+            .Comments.Where(c => c.Id == id && c.CardId == cardId && c.Card.Column.BoardId == boardId)
             .FirstOrDefaultAsync();
 
         if (comment == null)
@@ -155,7 +168,7 @@ public class CommentsController : Controller
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var comment = await _context
-            .Comments.Where(c => c.Id == id && c.CardId == cardId && c.Card.Collumn.BoardId == boardId)
+            .Comments.Where(c => c.Id == id && c.CardId == cardId && c.Card.Column.BoardId == boardId)
             .FirstOrDefaultAsync();
 
         if (comment == null)

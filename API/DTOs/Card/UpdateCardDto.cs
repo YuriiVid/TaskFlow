@@ -4,7 +4,7 @@ public class UpdateCardDto
 {
     public required string Title { get; set; }
     public string Description { get; set; } = string.Empty;
-    public long CollumnId { get; set; }
+    public long ColumnId { get; set; }
     public DateTime? DueDate { get; set; }
     public int? Position { get; set; }
     public long? AssignedUserId { get; set; }

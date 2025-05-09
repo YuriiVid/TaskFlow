@@ -6,5 +6,5 @@ public class FullBoardDto
     public required string Title { get; set; }
     public required string Description { get; set; }
     public IList<BoardMemberDto> Members { get; set; } = new List<BoardMemberDto>();
-    public IList<FullCollumnDto> Collumns { get; set; } = new List<FullCollumnDto>();
+    public IList<FullColumnDto> Columns { get; set; } = new List<FullColumnDto>();
 }

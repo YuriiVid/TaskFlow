@@ -1,10 +1,14 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using API.Filters;
+using API.Middleware;
 using API.Models;
 using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 
@@ -22,7 +26,7 @@ builder
 
 // Enum convertertion to be able to send enums as strings in requests and receive them as enums in the backend
 builder
-    .Services.AddControllers()
+    .Services.AddControllers(opt => opt.Filters.Add<GlobalJsonResponseFilter>())
     .AddJsonOptions(opt =>
     {
         opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -70,6 +74,26 @@ builder
             ValidateIssuer = true,
             ValidateAudience = false,
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                var payload = JsonSerializer.Serialize(new { message = "You are not authenticated. Please log in" });
+                await context.Response.WriteAsync(payload);
+            },
+            OnForbidden = async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                var payload = JsonSerializer.Serialize(
+                    new { message = "You are not authorized to access this resource" }
+                );
+                await context.Response.WriteAsync(payload);
+            },
+        };
     });
 
 builder
@@ -81,7 +105,7 @@ var app = builder.Build();
 
 app.UseCors(opt =>
 {
-    opt.AllowAnyHeader().AllowAnyMethod().AllowCredentials().WithOrigins(builder.Configuration["JWT:ClientUrl"]);
+    opt.WithOrigins(builder.Configuration["JWT:ClientUrl"]).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
 });
 
 if (app.Environment.IsDevelopment())
@@ -94,7 +118,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(
+    new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "Uploads")),
+        RequestPath = "/uploads",
+    }
+);
 
 app.UseAuthentication();
 app.UseAuthorization();

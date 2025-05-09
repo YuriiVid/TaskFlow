@@ -1,8 +1,7 @@
 namespace API.DTOs;
 
-public class AppUserDto
+public class AuthUserDto
 {
-    public required string FirstName { get; set; }
-    public required string LastName { get; set; }
+    public UserDto User { get; set; } = null!;
     public required string JWT { get; set; }
 }
