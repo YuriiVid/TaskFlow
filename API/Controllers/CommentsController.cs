@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using NodaTime;
 
 namespace API.Controllers;
 
@@ -156,7 +157,7 @@ public class CommentsController : Controller
         }
 
         comment.Content = dto.Content;
-        comment.UpdatedAt = DateTime.UtcNow;
+        comment.UpdatedAt = Instant.FromDateTimeUtc(DateTime.UtcNow);
         await _context.SaveChangesAsync();
 
         return NoContent();

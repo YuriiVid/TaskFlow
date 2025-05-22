@@ -2,9 +2,14 @@ using API.DTOs;
 using API.Extensions;
 using API.Models;
 using API.Services;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using NodaTime;
+using NodaTime.Text;
 
 namespace API.Controllers;
 
@@ -15,11 +20,20 @@ public class CardsController : Controller
 {
     private readonly AppDbContext _context;
     private readonly IBoardValidationService _boardValidationService;
+    private readonly ILogger _logger;
+    private readonly IMapper _mapper;
 
-    public CardsController(AppDbContext context, IBoardValidationService boardValidator)
+    public CardsController(
+        AppDbContext context,
+        IBoardValidationService boardValidator,
+        ILogger<CardsController> logger,
+        IMapper mapper
+    )
     {
+        _logger = logger;
         _boardValidationService = boardValidator;
         _context = context;
+        _mapper = mapper;
     }
 
     [HttpGet]
@@ -150,7 +164,7 @@ public class CardsController : Controller
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var maxPosition =
-            await _context.Cards.Where(c => c.ColumnId == cardDto.ColumnId).MaxAsync(c => c.Position) ?? -1;
+            await _context.Cards.Where(c => c.ColumnId == cardDto.ColumnId).MaxAsync(c => (int?)c.Position) ?? -1;
 
         var card = new Card
         {
@@ -184,6 +198,106 @@ public class CardsController : Controller
         card.Title = cardDto.Title;
         card.Description = cardDto.Description;
         card.DueDate = cardDto.DueDate;
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPatch("{id}")]
+    public async Task<IActionResult> PatchCard(long boardId, long id, JsonPatchDocument<UpdateCardDto> patchDoc)
+    {
+        if (patchDoc == null)
+        {
+            return BadRequest();
+        }
+
+        await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
+
+        var card = await _context
+            .Cards.Include(c => c.Column)
+            .Where(c => c.Id == id && c.Column.BoardId == boardId)
+            .FirstOrDefaultAsync();
+
+        if (card == null)
+        {
+            return NotFound("Card not found");
+        }
+
+        var dto = _mapper.Map<UpdateCardDto>(card);
+        var dueOp = patchDoc.Operations.FirstOrDefault(o =>
+            o.path.Equals("/dueDate", StringComparison.OrdinalIgnoreCase)
+        );
+        if (dueOp != null && dueOp.value is string s)
+        {
+            var parse = InstantPattern.ExtendedIso.Parse(s);
+            if (!parse.Success)
+                ModelState.AddModelError("dueDate", "Invalid ISO‐8601 Instant");
+            else
+                dto.DueDate = parse.Value;
+
+            patchDoc.Operations.Remove(dueOp);
+        }
+
+        patchDoc.ApplyTo(dto, ModelState);
+        if (!TryValidateModel(dto))
+        {
+            return BadRequest(ModelState);
+        }
+
+        _mapper.Map(dto, card);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpPost("{id}/move")]
+    public async Task<IActionResult> MoveCard(long boardId, long id, MoveCardDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
+
+        var card = await _context
+            .Cards.Include(c => c.Column)
+            .FirstOrDefaultAsync(c => c.Id == id && c.Column.BoardId == boardId);
+
+        if (card == null)
+            return NotFound("Card not found");
+
+        long oldColumn = card.ColumnId;
+        int oldPos = card.Position;
+        long newCol = dto.NewColumnId;
+
+        if (oldColumn == newCol && dto.NewPosition == oldPos)
+            return NoContent();
+
+        var destCards = await _context.Cards.Where(c => c.ColumnId == newCol).OrderBy(c => c.Position).ToListAsync();
+
+        int newPos = dto.NewPosition ?? destCards.LastOrDefault()?.Position + 1 ?? 0;
+
+        if (oldColumn == newCol)
+        {
+            var movedCards = destCards.Where(c => c.Id != card.Id).ToList();
+            movedCards.Insert(Math.Clamp(newPos, 0, movedCards.Count), card);
+            for (int i = 0; i < movedCards.Count; i++)
+                movedCards[i].Position = i;
+        }
+        else
+        {
+            var sourceCards = await _context
+                .Cards.Where(c => c.ColumnId == oldColumn)
+                .OrderBy(c => c.Position)
+                .ToListAsync();
+
+            foreach (var c in sourceCards.Where(c => c.Position > oldPos))
+                c.Position--;
+
+            foreach (var c in destCards.Where(c => c.Position >= newPos))
+                c.Position++;
+
+            card.ColumnId = newCol;
+            card.Position = newPos;
+        }
 
         await _context.SaveChangesAsync();
         return NoContent();
