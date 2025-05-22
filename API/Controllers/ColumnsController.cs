@@ -44,7 +44,7 @@ public class ColumnsController : Controller
         Url.ActionLink(nameof(CardsController.GetCard), "Cards", new { boardId, cardId = card.Id });
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<FullBoardDto>> GetColumn(long boardId, long id)
+    public async Task<ActionResult<FullColumnDto>> GetColumn(long boardId, long id)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
@@ -102,8 +102,13 @@ public class ColumnsController : Controller
     public async Task<ActionResult<BriefColumnDto>> CreateColumn(long boardId, UpsertColumnDto dto)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
-
-        var column = new Column { Title = dto.Title, BoardId = boardId };
+        var maxPosition = await _context.Columns.Where(c => c.BoardId == boardId).MaxAsync(c => (int?)c.Position) ?? -1;
+        var column = new Column
+        {
+            Title = dto.Title,
+            BoardId = boardId,
+            Position = maxPosition + 1,
+        };
 
         _context.Columns.Add(column);
         await _context.SaveChangesAsync();
@@ -144,6 +149,33 @@ public class ColumnsController : Controller
         _context.Columns.Remove(column);
         await _context.SaveChangesAsync();
 
+        return NoContent();
+    }
+
+    [HttpPost("{id}/move")]
+    public async Task<ActionResult> MoveColumn(long boardId, long id, MoveColumnDto dto)
+    {
+        await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
+
+        var columns = await _context.Columns.Where(c => c.BoardId == boardId).OrderBy(c => c.Position).ToListAsync();
+
+        var column = columns.FirstOrDefault(c => c.Id == id);
+        if (column == null)
+            return NotFound("Column not found");
+
+        int oldPos = column.Position;
+        int newPos = dto.NewPosition ?? columns.Count - 1;
+
+        if (oldPos != newPos)
+        {
+            columns.Remove(column);
+            columns.Insert(Math.Clamp(newPos, 0, columns.Count), column);
+
+            for (int i = 0; i < columns.Count; i++)
+                columns[i].Position = i;
+        }
+
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 }

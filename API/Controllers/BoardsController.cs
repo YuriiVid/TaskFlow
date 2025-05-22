@@ -73,6 +73,7 @@ public class BoardsController : Controller
             {
                 Id = col.Id,
                 Title = col.Title,
+                Position = col.Position,
                 Cards = col
                     .Cards.Select(card => new BriefCardDto
                     {
@@ -93,8 +94,10 @@ public class BoardsController : Controller
                         AssignedTo = card.AssignedUsers.Select(GetUserLink).ToList(),
                         CommentsCount = card.Comments.Count,
                     })
+                    .OrderBy(c => c.Position)
                     .ToList(),
             })
+            .OrderBy(c => c.Position)
             .ToList();
 
         var fullBoard = new FullBoardDto()

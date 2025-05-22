@@ -554,6 +554,8 @@ FodyWeavers.xsd
 API/.config/api.env
 API/.config/db.env
 
-# 
+# Uploads and templates
 API/Uploads/*
 API/Templates/Email/Build/*
+
+.vscode

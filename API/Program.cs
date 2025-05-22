@@ -1,6 +1,5 @@
+using System.Reflection;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using API.Filters;
 using API.Middleware;
 using API.Models;
@@ -10,6 +9,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using NodaTime;
+using NodaTime.Serialization.JsonNet;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,9 +30,11 @@ builder
 // Enum convertertion to be able to send enums as strings in requests and receive them as enums in the backend
 builder
     .Services.AddControllers(opt => opt.Filters.Add<GlobalJsonResponseFilter>())
-    .AddJsonOptions(opt =>
+    .AddNewtonsoftJson(opt =>
     {
-        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        opt.SerializerSettings.DateParseHandling = DateParseHandling.None;
+        opt.SerializerSettings.ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
+        opt.SerializerSettings.Converters.Add(new StringEnumConverter());
     });
 
 // OpenAPI Setup for better Scalar managment in dev
@@ -38,7 +43,7 @@ builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecu
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        o => o.MapEnum<BoardMemberRole>("BoardMemberRole")
+        o => o.MapEnum<BoardMemberRole>("BoardMemberRole").UseNodaTime()
     )
 );
 
@@ -60,6 +65,7 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<IBoardValidationService, BoardValidationService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
+builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddCors();
 
 builder
@@ -81,17 +87,15 @@ builder
                 context.HandleResponse();
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.ContentType = "application/json";
-                var payload = JsonSerializer.Serialize(new { message = "You are not authenticated. Please log in" });
-                await context.Response.WriteAsync(payload);
+                var payload = new { message = "You are not authenticated. Please log in" };
+                await context.Response.WriteAsJsonAsync(payload);
             },
             OnForbidden = async context =>
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 context.Response.ContentType = "application/json";
-                var payload = JsonSerializer.Serialize(
-                    new { message = "You are not authorized to access this resource" }
-                );
-                await context.Response.WriteAsync(payload);
+                var payload = new { message = "You are not authorized to access this resource" };
+                await context.Response.WriteAsJsonAsync(payload);
             },
         };
     });

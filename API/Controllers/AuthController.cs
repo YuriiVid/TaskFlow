@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using API.DTOs;
+using API.Extensions;
 using API.Models;
 using API.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -46,17 +47,23 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> RefreshUserToken()
     {
         if (!Request.Cookies.TryGetValue("refreshToken", out var incomingToken))
+        {
             return Unauthorized("No token found");
+        }
 
         var tokenEntry = await _context.UserTokens.SingleOrDefaultAsync(t =>
             t.LoginProvider == "RefreshToken" && t.Name == "MyAppRefreshToken" && t.Value == incomingToken
         );
         if (tokenEntry == null)
+        {
             return Unauthorized("Invalid token");
+        }
 
         var user = await _userManager.FindByIdAsync(tokenEntry.UserId.ToString());
         if (user == null)
+        {
             return Unauthorized("No user found");
+        }
 
         if (!_jwtService.IsRefreshTokenValid(incomingToken))
         {
@@ -167,10 +174,14 @@ public class AuthController : ControllerBase
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user == null)
+        {
             return Unauthorized("This email address has not been registered yet");
+        }
 
         if (user.EmailConfirmed == true)
+        {
             return BadRequest("Your email was confirmed before. Please login to your account");
+        }
 
         try
         {
@@ -197,9 +208,14 @@ public class AuthController : ControllerBase
         var user = await _userManager.FindByEmailAsync(email);
 
         if (user == null)
+        {
             return Unauthorized("This email address has not been registerd yet");
+        }
+
         if (user.EmailConfirmed == true)
+        {
             return BadRequest("Your email address was confirmed before. Please login to your account");
+        }
 
         try
         {
@@ -223,9 +239,14 @@ public class AuthController : ControllerBase
         var user = await _userManager.FindByEmailAsync(email);
 
         if (user == null)
+        {
             return Unauthorized("This email address has not been registerd yet");
+        }
+
         if (user.EmailConfirmed == false)
+        {
             return BadRequest("Please confirm your email address first.");
+        }
 
         try
         {
@@ -245,9 +266,14 @@ public class AuthController : ControllerBase
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user == null)
+        {
             return Unauthorized("This email address has not been registerd yet");
+        }
+
         if (user.EmailConfirmed == false)
-            return BadRequest("PLease confirm your email address first");
+        {
+            return BadRequest("Please confirm your email address first");
+        }
 
         try
         {
@@ -270,12 +296,13 @@ public class AuthController : ControllerBase
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        var username = User.FindFirstValue(ClaimTypes.Name);
-        var user = await _userManager.FindByIdAsync(username);
-        if (user != null)
+        var user = await _userManager.FindByIdAsync(User.GetCurrentUserId().ToString());
+        if (user == null)
         {
-            await _userManager.RemoveAuthenticationTokenAsync(user, "RefreshToken", "MyAppRefreshToken");
+            return Unauthorized("User not found");
         }
+
+        await _userManager.RemoveAuthenticationTokenAsync(user, "RefreshToken", "MyAppRefreshToken");
 
         Response.Cookies.Delete("refreshToken");
         return Ok(new { title = "Success", message = "Logged out" });
@@ -283,9 +310,7 @@ public class AuthController : ControllerBase
 
     private async Task<bool> CheckEmailExistsAsync(string email)
     {
-        return await _userManager.Users.AnyAsync(x =>
-            x.Email!.Equals(email, StringComparison.CurrentCultureIgnoreCase)
-        );
+        return await _userManager.Users.AnyAsync(x => x.Email == email);
     }
 
     private async Task<AuthUserDto> CreateAppUserDto(AppUser appUser)
