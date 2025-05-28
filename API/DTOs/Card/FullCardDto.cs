@@ -14,6 +14,6 @@ public class FullCardDto
     public long ColumnId { get; set; }
     public IList<AttachmentDto> Attachments { get; set; } = new List<AttachmentDto>();
     public IList<LabelDto> Labels { get; set; } = new List<LabelDto>();
-    public IList<UserDto> AssignedTo { get; set; } = new List<UserDto>();
+    public IList<UserDto> AssignedUsers { get; set; } = new List<UserDto>();
     public IList<CommentDto> Comments { get; set; } = new List<CommentDto>();
 }

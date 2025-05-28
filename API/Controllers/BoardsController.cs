@@ -28,7 +28,24 @@ public class BoardsController : Controller
         var boards = await _context
             .Boards.Include(b => b.Members)
             .Where(b => b.Members.Any(m => m.UserId == User.GetCurrentUserId()))
-            .Select(b => new BriefBoardDto { Id = b.Id, Title = b.Title })
+            .Select(b => new BriefBoardDto
+            {
+                Id = b.Id,
+                Title = b.Title,
+                Description = b.Description,
+                TasksCount = b.Columns.Sum(c => c.Cards.Count),
+                Members = b
+                    .Members.Select(m => new UserDto
+                    {
+                        Id = m.User.Id,
+                        UserName = m.User.UserName,
+                        Email = m.User.Email,
+                        FirstName = m.User.FirstName,
+                        LastName = m.User.LastName,
+                        ProfilePictureUrl = m.User.ProfilePictureUrl,
+                    })
+                    .ToList(),
+            })
             .ToListAsync();
 
         return Ok(boards);
@@ -60,7 +77,7 @@ public class BoardsController : Controller
         List<BoardMemberDto> boardMembers = board!
             .Members.Select(member => new BoardMemberDto
             {
-                UserId = member.UserId,
+                Id = member.UserId,
                 UserName = member.User.UserName,
                 FirstName = member.User.FirstName,
                 LastName = member.User.LastName,
@@ -91,7 +108,16 @@ public class BoardsController : Controller
                         DueDate = card.DueDate,
                         HasDescription = !string.IsNullOrEmpty(card.Description),
                         Position = card.Position,
-                        AssignedTo = card.AssignedUsers.Select(GetUserLink).ToList(),
+                        AssignedUsers = card
+                            .AssignedUsers.Select(u => new UserDto
+                            {
+                                Id = u.Id,
+                                FirstName = u.FirstName,
+                                LastName = u.LastName,
+                                Email = u.Email,
+                                UserName = u.UserName,
+                            })
+                            .ToList(),
                         CommentsCount = card.Comments.Count,
                     })
                     .OrderBy(c => c.Position)
@@ -112,9 +138,6 @@ public class BoardsController : Controller
         return Ok(fullBoard);
     }
 
-    private string GetUserLink(AppUser user) =>
-        Url.ActionLink(action: nameof(UsersController.GetUser), controller: "Users", values: new { id = user.Id });
-
     [HttpPost]
     public async Task<ActionResult> CreateBoard(UpsertBoardDto boardDto)
     {
@@ -125,7 +148,6 @@ public class BoardsController : Controller
 
         var board = new Board { Title = boardDto.Title, Description = boardDto.Description };
         var currentUserId = User.GetCurrentUserId();
-        _boardValidationService.ValidateBoard(board, currentUserId);
 
         board.Members.Add(new BoardMember { UserId = currentUserId, Role = BoardMemberRole.Owner });
         _context.Boards.Add(board);

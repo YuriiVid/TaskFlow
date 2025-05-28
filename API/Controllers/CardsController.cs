@@ -66,16 +66,22 @@ public class CardsController : Controller
                 DueDate = card.DueDate,
                 HasDescription = !string.IsNullOrEmpty(card.Description),
                 Position = card.Position,
-                AssignedTo = card.AssignedUsers.Select(GetUserLink).ToList(),
+                AssignedUsers = card
+                    .AssignedUsers.Select(u => new UserDto
+                    {
+                        Id = u.Id,
+                        FirstName = u.FirstName,
+                        LastName = u.LastName,
+                        Email = u.Email,
+                        UserName = u.UserName,
+                    })
+                    .ToList(),
                 CommentsCount = card.Comments.Count,
             })
             .ToList();
 
         return Ok(briefCards);
     }
-
-    private string GetUserLink(AppUser user) =>
-        Url.ActionLink(action: nameof(UsersController.GetUser), controller: "Users", values: new { id = user.Id });
 
     [HttpGet("{id}")]
     public async Task<ActionResult<FullCardDto>> GetCard(long boardId, long id)
@@ -126,6 +132,7 @@ public class CardsController : Controller
                     Id = com.Id,
                     Content = com.Content,
                     CreatedAt = com.CreatedAt,
+                    UpdatedAt = com.UpdatedAt,
                     CardId = com.CardId,
                     User = new UserDto
                     {
@@ -138,7 +145,7 @@ public class CardsController : Controller
                     },
                 })
                 .ToList(),
-            AssignedTo = card
+            AssignedUsers = card
                 .AssignedUsers.Select(u => new UserDto
                 {
                     Id = u.Id,
@@ -318,5 +325,64 @@ public class CardsController : Controller
         await _context.SaveChangesAsync();
 
         return Ok();
+    }
+
+    [HttpPost("{cardId}/assignees")]
+    public async Task<IActionResult> AssignUser(long boardId, long cardId, AssignUserDto userDto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var userId = userDto.UserId;
+        await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
+
+        var card = await _context
+            .Cards.Include(c => c.AssignedUsers)
+            .Include(c => c.Column)
+            .FirstOrDefaultAsync(c => c.Id == cardId && c.Column.BoardId == boardId);
+
+        if (card == null)
+            return NotFound("Card not found");
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return NotFound("User not found");
+
+        var isBoardMember = await _context.BoardMembers.AnyAsync(bm => bm.BoardId == boardId && bm.UserId == userId);
+        if (!isBoardMember)
+            return BadRequest("User is not a member of this board");
+
+        if (card.AssignedUsers.Any(u => u.Id == userId))
+            return BadRequest("User already assigned");
+
+        card.AssignedUsers.Add(user);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpDelete("{cardId}/assignees/{userId}")]
+    public async Task<IActionResult> UnassignUser(long boardId, long cardId, int userId)
+    {
+        await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
+
+        var card = await _context
+            .Cards.Include(c => c.AssignedUsers)
+            .Include(c => c.Column)
+            .FirstOrDefaultAsync(c => c.Id == cardId && c.Column.BoardId == boardId);
+
+        if (card == null)
+            return NotFound("Card not found");
+
+        var user = card.AssignedUsers.FirstOrDefault(u => u.Id == userId);
+        if (user == null)
+            return NotFound("User is not assigned to this card");
+
+        card.AssignedUsers.Remove(user);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }
