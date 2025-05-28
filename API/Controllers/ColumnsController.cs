@@ -86,7 +86,16 @@ public class ColumnsController : Controller
                     DueDate = card.DueDate,
                     HasDescription = !string.IsNullOrEmpty(card.Description),
                     Position = card.Position,
-                    AssignedTo = card.AssignedUsers.Select(GetUserLink).ToList(),
+                    AssignedUsers = card
+                        .AssignedUsers.Select(u => new UserDto
+                        {
+                            Id = u.Id,
+                            FirstName = u.FirstName,
+                            LastName = u.LastName,
+                            Email = u.Email,
+                            UserName = u.UserName,
+                        })
+                        .ToList(),
                     CommentsCount = card.Comments.Count,
                 })
                 .ToList(),

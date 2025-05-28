@@ -35,7 +35,7 @@ public class BoardMembersController : Controller
         var members = board!
             .Members.Select(m => new BoardMemberDto
             {
-                UserId = m.UserId,
+                Id = m.UserId,
                 UserName = m.User.UserName!,
                 FirstName = m.User.FirstName,
                 LastName = m.User.LastName,
