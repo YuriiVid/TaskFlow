@@ -3,6 +3,7 @@ using API.Extensions;
 using API.Models;
 using API.Services;
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -87,75 +88,16 @@ public class CardsController : Controller
     public async Task<ActionResult<FullCardDto>> GetCard(long boardId, long id)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
-
-        var card = await _context
-            .Cards.Include(c => c.Labels)
-            .Include(c => c.Attachments)
-            .Include(c => c.AssignedUsers)
-            .Include(c => c.Comments)
-            .ThenInclude(com => com.User)
-            .Include(c => c.Column)
-            .Where(c => c.Id == id && c.Column.BoardId == boardId)
+        var fullCard = await _context
+            .Cards.AsNoTracking()
+            .Where(b => b.Id == id)
+            .ProjectTo<FullCardDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync();
 
-        if (card == null)
+        if (fullCard == null)
         {
             return NotFound("Card not found");
         }
-
-        FullCardDto fullCard = new()
-        {
-            Id = card.Id,
-            Title = card.Title,
-            Description = card.Description,
-            DueDate = card.DueDate,
-            ColumnId = card.ColumnId,
-            Attachments = card
-                .Attachments.Select(a => new AttachmentDto
-                {
-                    Id = a.Id,
-                    FileName = a.FileName,
-                    FileUrl = a.FileUrl,
-                })
-                .ToList(),
-            Labels = card
-                .Labels.Select(l => new LabelDto
-                {
-                    Id = l.Id,
-                    Title = l.Title,
-                    Color = l.Color,
-                })
-                .ToList(),
-            Comments = card
-                .Comments.Select(com => new CommentDto
-                {
-                    Id = com.Id,
-                    Content = com.Content,
-                    CreatedAt = com.CreatedAt,
-                    UpdatedAt = com.UpdatedAt,
-                    CardId = com.CardId,
-                    User = new UserDto
-                    {
-                        Id = com.User.Id,
-                        FirstName = com.User.FirstName,
-                        LastName = com.User.LastName,
-                        ProfilePictureUrl = com.User.ProfilePictureUrl,
-                        UserName = com.User.UserName,
-                        Email = com.User.Email,
-                    },
-                })
-                .ToList(),
-            AssignedUsers = card
-                .AssignedUsers.Select(u => new UserDto
-                {
-                    Id = u.Id,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    Email = u.Email,
-                    UserName = u.UserName,
-                })
-                .ToList(),
-        };
 
         return Ok(fullCard);
     }
@@ -381,6 +323,55 @@ public class CardsController : Controller
             return NotFound("User is not assigned to this card");
 
         card.AssignedUsers.Remove(user);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpPost("{cardId}/labels")]
+    public async Task<IActionResult> AttachLabel(long boardId, long cardId, AttachLabelDto dto)
+    {
+        await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
+
+        var card = await _context
+            .Cards.Include(c => c.Labels)
+            .Include(c => c.Column)
+            .FirstOrDefaultAsync(c => c.Id == cardId && c.Column.BoardId == boardId);
+
+        if (card == null)
+            return NotFound("Card not found");
+
+        var label = await _context.Labels.FindAsync(dto.LabelId);
+        if (label == null)
+            return NotFound("Label not found");
+
+        if (card.Labels.Any(l => l.Id == dto.LabelId))
+            return BadRequest("Label already attached");
+
+        card.Labels.Add(label);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
+
+    [HttpDelete("{cardId}/labels/{labelId}")]
+    public async Task<IActionResult> DetachLabel(long boardId, long cardId, long labelId)
+    {
+        await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
+
+        var card = await _context
+            .Cards.Include(c => c.Labels)
+            .Include(c => c.Column)
+            .FirstOrDefaultAsync(c => c.Id == cardId && c.Column.BoardId == boardId);
+
+        if (card == null)
+            return NotFound("Card not found");
+
+        var label = card.Labels.FirstOrDefault(l => l.Id == labelId);
+        if (label == null)
+            return NotFound("Label not attached to card");
+
+        card.Labels.Remove(label);
         await _context.SaveChangesAsync();
 
         return NoContent();

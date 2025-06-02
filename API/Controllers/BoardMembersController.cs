@@ -35,10 +35,13 @@ public class BoardMembersController : Controller
         var members = board!
             .Members.Select(m => new BoardMemberDto
             {
-                Id = m.UserId,
-                UserName = m.User.UserName!,
+                Id = m.User.Id,
+                UserName = m.User.UserName,
+                Email = m.User.Email,
                 FirstName = m.User.FirstName,
                 LastName = m.User.LastName,
+                ProfilePictureUrl = m.User.ProfilePictureUrl,
+
                 Role = m.Role.ToString(),
             })
             .ToList();
@@ -59,7 +62,13 @@ public class BoardMembersController : Controller
             return BadRequest("Only admins and owners can add members");
         }
 
-        if (board.Members.Any(m => m.UserId == addMemberDto.UserId))
+        var userToAdd = await _context.Users.Where(u => u.Email == addMemberDto.Email).FirstOrDefaultAsync();
+        if (userToAdd == null)
+        {
+            return NotFound("User with this email does not exist");
+        }
+
+        if (board.Members.Any(m => m.UserId == userToAdd.Id))
         {
             return BadRequest("User is already a member of this board");
         }
@@ -75,7 +84,7 @@ public class BoardMembersController : Controller
         var newMember = new BoardMember
         {
             BoardId = boardId,
-            UserId = addMemberDto.UserId,
+            UserId = userToAdd.Id,
             Role = addMemberDto.BoardMemberRole,
         };
 
@@ -85,8 +94,8 @@ public class BoardMembersController : Controller
         return NoContent();
     }
 
-    [HttpPut("{userId}/role")]
-    public async Task<IActionResult> UpdateMemberRole(long boardId, int userId, BoardMemberRole boardMemberRole)
+    [HttpPatch("{userId}/role")]
+    public async Task<IActionResult> UpdateMemberRole(long boardId, int userId, ChangeBoardMemberRoleDto changeRoleDto)
     {
         var board = await _context.Boards.Include(b => b.Members).FirstOrDefaultAsync(b => b.Id == boardId);
         var currentUserId = User.GetCurrentUserId();
@@ -100,13 +109,13 @@ public class BoardMembersController : Controller
             return NotFound("Member not found");
         }
 
-        if (memberToUpdate.Role == BoardMemberRole.Owner)
+        if (changeRoleDto.Role == BoardMemberRole.Owner)
         {
-            return BadRequest("Cannot change owner's role. Use transfer ownership instead.");
+            return BadRequest("Cannot change owner's role. Use transfer ownership instead");
         }
 
         // Only owner can manage admins
-        if (boardMemberRole == BoardMemberRole.Admin || memberToUpdate.Role == BoardMemberRole.Admin)
+        if (changeRoleDto.Role == BoardMemberRole.Admin || memberToUpdate.Role == BoardMemberRole.Admin)
         {
             if (currentUserMember!.Role != BoardMemberRole.Owner)
             {
@@ -119,7 +128,7 @@ public class BoardMembersController : Controller
             return BadRequest("You don't have permission to change roles");
         }
 
-        memberToUpdate.Role = boardMemberRole;
+        memberToUpdate.Role = changeRoleDto.Role;
         await _context.SaveChangesAsync();
 
         return NoContent();

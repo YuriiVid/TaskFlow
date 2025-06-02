@@ -11,6 +11,7 @@ public class BriefCardDto
     public Instant? DueDate { get; set; }
     public required bool HasDescription { get; set; }
     public int? Position { get; set; }
+    public bool IsCompleted { get; set; }
     public IList<UserDto> AssignedUsers { get; set; } = new List<UserDto>();
     public int CommentsCount { get; set; }
 }

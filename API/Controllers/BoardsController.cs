@@ -2,6 +2,8 @@ using API.DTOs;
 using API.Extensions;
 using API.Models;
 using API.Services;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +17,13 @@ public class BoardsController : Controller
 {
     private readonly AppDbContext _context;
     private readonly IBoardValidationService _boardValidationService;
+    private readonly IMapper _mapper;
 
-    public BoardsController(AppDbContext context, IBoardValidationService boardValidator)
+    public BoardsController(AppDbContext context, IBoardValidationService boardValidator, IMapper mapper)
     {
         _context = context;
         _boardValidationService = boardValidator;
+        _mapper = mapper;
     }
 
     [HttpGet]
@@ -54,86 +58,12 @@ public class BoardsController : Controller
     [HttpGet("{id}")]
     public async Task<ActionResult<FullBoardDto>> GetBoard(long id)
     {
-        var board = await _context
-            .Boards.Include(b => b.Columns)
-            .ThenInclude(col => col.Cards)
-            .ThenInclude(c => c.Labels)
-            .Include(b => b.Columns)
-            .ThenInclude(col => col.Cards)
-            .ThenInclude(c => c.AssignedUsers)
-            .Include(b => b.Columns)
-            .ThenInclude(col => col.Cards)
-            .ThenInclude(c => c.Attachments)
-            .Include(b => b.Columns)
-            .ThenInclude(col => col.Cards)
-            .ThenInclude(c => c.Comments)
-            .Include(b => b.Members)
-            .ThenInclude(m => m.User)
+        await _boardValidationService.ValidateBoardAsync(_context, id, User.GetCurrentUserId());
+        var fullBoard = await _context
+            .Boards.AsNoTracking()
             .Where(b => b.Id == id)
+            .ProjectTo<FullBoardDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync();
-
-        _boardValidationService.ValidateBoard(board, User.GetCurrentUserId());
-
-        List<BoardMemberDto> boardMembers = board!
-            .Members.Select(member => new BoardMemberDto
-            {
-                Id = member.UserId,
-                UserName = member.User.UserName,
-                FirstName = member.User.FirstName,
-                LastName = member.User.LastName,
-                Role = member.Role.ToString(),
-            })
-            .ToList();
-
-        List<FullColumnDto> boardColumns = board
-            .Columns.Select(col => new FullColumnDto
-            {
-                Id = col.Id,
-                Title = col.Title,
-                Position = col.Position,
-                Cards = col
-                    .Cards.Select(card => new BriefCardDto
-                    {
-                        Id = card.Id,
-                        Title = card.Title,
-                        Labels = card
-                            .Labels.Select(l => new LabelDto
-                            {
-                                Id = l.Id,
-                                Title = l.Title,
-                                Color = l.Color,
-                            })
-                            .ToList(),
-                        AttachmentsCount = card.Attachments.Count,
-                        DueDate = card.DueDate,
-                        HasDescription = !string.IsNullOrEmpty(card.Description),
-                        Position = card.Position,
-                        AssignedUsers = card
-                            .AssignedUsers.Select(u => new UserDto
-                            {
-                                Id = u.Id,
-                                FirstName = u.FirstName,
-                                LastName = u.LastName,
-                                Email = u.Email,
-                                UserName = u.UserName,
-                            })
-                            .ToList(),
-                        CommentsCount = card.Comments.Count,
-                    })
-                    .OrderBy(c => c.Position)
-                    .ToList(),
-            })
-            .OrderBy(c => c.Position)
-            .ToList();
-
-        var fullBoard = new FullBoardDto()
-        {
-            Id = board.Id,
-            Title = board.Title,
-            Description = board.Description,
-            Columns = boardColumns,
-            Members = boardMembers,
-        };
 
         return Ok(fullBoard);
     }
@@ -150,6 +80,15 @@ public class BoardsController : Controller
         var currentUserId = User.GetCurrentUserId();
 
         board.Members.Add(new BoardMember { UserId = currentUserId, Role = BoardMemberRole.Owner });
+
+        // Create default labels
+        var defaultLabels = GetDefaultLabels();
+        foreach (var label in defaultLabels)
+        {
+            label.BoardId = board.Id;
+            board.Labels.Add(label);
+        }
+
         _context.Boards.Add(board);
         await _context.SaveChangesAsync();
 
@@ -197,5 +136,18 @@ public class BoardsController : Controller
         await _context.SaveChangesAsync();
 
         return Ok();
+    }
+
+    private static List<Label> GetDefaultLabels()
+    {
+        return new List<Label>
+        {
+            new Label { Color = "#ef4444" }, // Red
+            new Label { Color = "#f97316" }, // Orange
+            new Label { Color = "#eab308" }, // Yellow
+            new Label { Color = "#22c55e" }, // Green
+            new Label { Color = "#3b82f6" }, // Blue
+            new Label { Color = "#8b5cf6" }, // Violet
+        };
     }
 }
