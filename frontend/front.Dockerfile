@@ -1,8 +1,8 @@
-FROM node:23.7-alpine
+FROM node:23.11-alpine
  
 WORKDIR /app 
 COPY package*.json ./
- 
+
 RUN npm install
 COPY . .
 

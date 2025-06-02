@@ -559,3 +559,4 @@ API/Uploads/*
 API/Templates/Email/Build/*
 
 .vscode
+frontend/certs

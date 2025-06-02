@@ -1,7 +1,16 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@features/*": ["src/features/*"],
+      "@utils/*": ["src/utils/*"],
+      "@utils": ["src/utils"],
+      "@shared/*": ["src/shared/*"],
+      "@shared": ["src/shared"],
+      "@app/*": ["src/app/*"],
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src"]
 }
