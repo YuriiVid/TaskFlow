@@ -1,0 +1,39 @@
+@reference "@/index.css";
+
+@layer components {
+  .auth-label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+
+  .auth-input-wrapper {
+    @apply mt-1 relative rounded-md shadow-sm;
+  }
+
+  .auth-input-icon {
+    @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none h-5 w-5 text-gray-400;
+  }
+
+  .auth-input {
+    @apply block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm;
+  }
+
+  .auth-checkbox {
+    @apply h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded;
+  }
+
+  .auth-link {
+    @apply text-sm font-medium text-teal-600 hover:text-teal-500;
+  }
+
+  .btn-primary {
+    @apply flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500;
+  }
+
+  .btn-outline {
+    @apply flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-teal-600 bg-teal-50 hover:bg-teal-100;
+  }
+
+  .error-message {
+    @apply text-red-600 text-sm font-bold;
+  }
+}

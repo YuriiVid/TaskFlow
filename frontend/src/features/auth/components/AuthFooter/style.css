@@ -1,0 +1,20 @@
+@reference "@/index.css";
+
+@layer components {
+  .auth-footer {
+    @apply mt-6;
+  }
+
+  .auth-divider {
+    @apply relative;
+  }
+
+  .auth-divider::before {
+    content: "";
+    @apply absolute inset-0 flex items-center;
+  }
+
+  .auth-divider-text {
+    @apply relative flex justify-center text-sm;
+  }
+}
