@@ -1,0 +1,24 @@
+@reference "@/index.css";
+
+.auth-page {
+  @apply min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8;
+}
+
+.auth-form-container {
+  @apply mt-8 sm:mx-auto sm:w-full sm:max-w-md;
+}
+
+.auth-card {
+  @apply bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10;
+}
+.auth-header {
+  @apply sm:mx-auto sm:w-full sm:max-w-md text-center;
+}
+
+.auth-logo {
+  @apply flex justify-center items-center;
+}
+
+.auth-title {
+  @apply mt-6 text-3xl font-extrabold text-gray-900;
+}
