@@ -97,6 +97,7 @@ public class ColumnsController : Controller
                         })
                         .ToList(),
                     CommentsCount = card.Comments.Count,
+                    IsCompleted = card.IsCompleted,
                 })
                 .ToList(),
         };

@@ -5,6 +5,7 @@ using API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using NodaTime;
 
 namespace API.Controllers;
 
@@ -29,7 +30,6 @@ public class AttachmentsController : Controller
     }
 
     [HttpGet]
-    // TODO:implement size
     public async Task<ActionResult<IList<AttachmentDto>>> GetAttachments(long boardId, long cardId)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
@@ -41,6 +41,8 @@ public class AttachmentsController : Controller
                 Id = a.Id,
                 FileName = a.FileName,
                 FileUrl = a.FileUrl,
+                SizeInBytes = a.SizeInBytes,
+                CreatedAt = a.CreatedAt,
             })
             .ToListAsync();
 
@@ -59,6 +61,8 @@ public class AttachmentsController : Controller
                 Id = a.Id,
                 FileName = a.FileName,
                 FileUrl = a.FileUrl,
+                SizeInBytes = a.SizeInBytes,
+                CreatedAt = a.CreatedAt,
             })
             .FirstOrDefaultAsync();
 
@@ -68,6 +72,28 @@ public class AttachmentsController : Controller
         }
 
         return Ok(attachment);
+    }
+
+    [HttpGet("{id}/download")]
+    public async Task<IActionResult> DownloadAttachment(long boardId, long cardId, long id)
+    {
+        await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
+
+        var attachment = await _context
+            .Attachments.Where(a => a.Id == id && a.CardId == cardId && a.Card.Column.BoardId == boardId)
+            .FirstOrDefaultAsync();
+        if (attachment == null)
+            return NotFound();
+
+        var (stream, contentType) = await _fileStorage.GetFileStreamAsync(attachment.FileUrl);
+        if (stream == null)
+            return NotFound();
+
+        return File(
+            fileStream: stream,
+            contentType: contentType ?? "application/octet-stream",
+            fileDownloadName: attachment.FileName
+        );
     }
 
     [HttpPost]
@@ -93,6 +119,7 @@ public class AttachmentsController : Controller
             FileName = File.FileName,
             FileUrl = fileUrl,
             CardId = cardId,
+            SizeInBytes = File.Length,
         };
 
         _context.Attachments.Add(attachment);
@@ -111,6 +138,8 @@ public class AttachmentsController : Controller
                 Id = attachment.Id,
                 FileName = attachment.FileName,
                 FileUrl = attachment.FileUrl,
+                SizeInBytes = attachment.SizeInBytes,
+                CreatedAt = attachment.CreatedAt,
             }
         );
     }

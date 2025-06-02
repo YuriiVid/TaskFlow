@@ -7,9 +7,10 @@ public class Card
     public long Id { get; set; }
     public required string Title { get; set; }
     public Instant? DueDate { get; set; }
-    public string Description { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public long ColumnId { get; set; }
     public Column Column { get; set; } = null!;
+    public bool IsCompleted { get; set; } = false;
     public int Position { get; set; }
     public ICollection<AppUser> AssignedUsers { get; } = new List<AppUser>();
     public ICollection<Comment> Comments { get; } = new List<Comment>();

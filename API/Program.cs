@@ -3,6 +3,7 @@ using System.Text;
 using API.Filters;
 using API.Middleware;
 using API.Models;
+using API.Profiles;
 using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -65,7 +66,8 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<IBoardValidationService, BoardValidationService>();
 builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+builder.Services.AddAutoMapper(typeof(BoardMappingProfile).Assembly);
+
 builder.Services.AddCors();
 
 builder
@@ -103,7 +105,7 @@ builder
 builder
     .Services.AddAuthorizationBuilder()
     .AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"))
-    .AddDefaultPolicy("UserPolicy", policy => policy.RequireRole("User"));
+    .AddDefaultPolicy("UserPolicy", policy => policy.RequireRole("User", "Admin"));
 
 var app = builder.Build();
 
