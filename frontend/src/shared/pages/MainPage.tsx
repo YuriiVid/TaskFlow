@@ -26,7 +26,7 @@ const MainPage = () => {
         </div>
       </nav>
 
-      <div className="section-container py-16 text-center">
+      <div className="section-container py-10 text-center">
         <h1 className="hero-heading">
           Manage projects with
           <span className="block text-teal-500">TaskFlow</span>
@@ -42,7 +42,7 @@ const MainPage = () => {
         </div>
       </div>
 
-      <div className="bg-gray-50 py-16">
+      <div className="bg-gray-50 py-10">
         <div className="section-container">
           <div className="feature-grid">
             <FeatureCard

@@ -42,44 +42,11 @@ public class CardsController : Controller
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var cards = await _context
-            .Cards.Include(c => c.Labels)
-            .Include(c => c.Attachments)
-            .Include(c => c.AssignedUsers)
-            .Include(c => c.Comments)
+        var briefCards = await _context
+            .Cards.AsNoTracking()
             .Where(c => c.Column.BoardId == boardId)
+            .ProjectTo<BriefCardDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
-
-        List<BriefCardDto> briefCards = cards
-            .Select(card => new BriefCardDto
-            {
-                Id = card.Id,
-                Title = card.Title,
-                Labels = card
-                    .Labels.Select(l => new LabelDto
-                    {
-                        Id = l.Id,
-                        Title = l.Title,
-                        Color = l.Color,
-                    })
-                    .ToList(),
-                AttachmentsCount = card.Attachments.Count,
-                DueDate = card.DueDate,
-                HasDescription = !string.IsNullOrEmpty(card.Description),
-                Position = card.Position,
-                AssignedUsers = card
-                    .AssignedUsers.Select(u => new UserDto
-                    {
-                        Id = u.Id,
-                        FirstName = u.FirstName,
-                        LastName = u.LastName,
-                        Email = u.Email,
-                        UserName = u.UserName,
-                    })
-                    .ToList(),
-                CommentsCount = card.Comments.Count,
-            })
-            .ToList();
 
         return Ok(briefCards);
     }

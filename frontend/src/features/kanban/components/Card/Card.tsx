@@ -30,7 +30,7 @@ interface CardProps {
   onClose: () => void;
 }
 
-const UPLOADS_URL = import.meta.env.VITE_UPLOADS_PATH || "/uploads";
+const UPLOADS_URL = import.meta.env.VITE_UPLOADS_PATH || "/Uploads" + "/Attachments";
 
 export const Card: React.FC<CardProps> = ({
   board,
@@ -101,17 +101,17 @@ export const Card: React.FC<CardProps> = ({
           onToogleCompleted={handleToogleCompleted}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6">
-          <div className="md:col-span-2 space-y-8">
-			 <CardLabels
-          card={card}
-          board={board}
-          onCreateLabel={onCreateLabel}
-          onUpdateLabel={onUpdateLabel}
-          onDeleteLabel={onDeleteLabel}
-          onAttachLabel={onAttachLabel}
-          onDetachLabel={onDetachLabel}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-2">
+          <div className="md:col-span-2 space-y-4">
+            <CardLabels
+              card={card}
+              board={board}
+              onCreateLabel={onCreateLabel}
+              onUpdateLabel={onUpdateLabel}
+              onDeleteLabel={onDeleteLabel}
+              onAttachLabel={onAttachLabel}
+              onDetachLabel={onDetachLabel}
+            />
             <CardDescription description={card.description ?? ""} onDescriptionChange={handleDescriptionChange} />
             <CardAttachments
               attachments={card.attachments}

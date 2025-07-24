@@ -31,25 +31,9 @@ public class BoardsController : Controller
     {
         var boards = await _context
             .Boards.Include(b => b.Members)
+            .AsNoTracking()
             .Where(b => b.Members.Any(m => m.UserId == User.GetCurrentUserId()))
-            .Select(b => new BriefBoardDto
-            {
-                Id = b.Id,
-                Title = b.Title,
-                Description = b.Description,
-                TasksCount = b.Columns.Sum(c => c.Cards.Count),
-                Members = b
-                    .Members.Select(m => new UserDto
-                    {
-                        Id = m.User.Id,
-                        UserName = m.User.UserName,
-                        Email = m.User.Email,
-                        FirstName = m.User.FirstName,
-                        LastName = m.User.LastName,
-                        ProfilePictureUrl = m.User.ProfilePictureUrl,
-                    })
-                    .ToList(),
-            })
+            .ProjectTo<BriefBoardDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
         return Ok(boards);

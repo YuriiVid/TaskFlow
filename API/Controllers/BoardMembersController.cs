@@ -2,6 +2,8 @@ using API.DTOs;
 using API.Extensions;
 using API.Models;
 using API.Services;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,36 +17,24 @@ public class BoardMembersController : Controller
 {
     private readonly AppDbContext _context;
     private readonly IBoardValidationService _boardValidationService;
+    private readonly IMapper _mapper;
 
-    public BoardMembersController(AppDbContext context, IBoardValidationService boardValidator)
+    public BoardMembersController(AppDbContext context, IBoardValidationService boardValidator, IMapper mapper)
     {
         _context = context;
         _boardValidationService = boardValidator;
+        _mapper = mapper;
     }
 
     [HttpGet]
     public async Task<ActionResult<IList<BoardMemberDto>>> GetBoardMembers(long boardId)
     {
-        var board = await _context
-            .Boards.Include(b => b.Members)
-            .ThenInclude(m => m.User)
+        await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
+        var members = await _context
+            .BoardMembers.AsNoTracking()
+            .Where(m => m.BoardId == boardId)
+            .ProjectTo<BoardMemberDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync(b => b.Id == boardId);
-
-        _boardValidationService.ValidateBoard(board, User.GetCurrentUserId());
-
-        var members = board!
-            .Members.Select(m => new BoardMemberDto
-            {
-                Id = m.User.Id,
-                UserName = m.User.UserName,
-                Email = m.User.Email,
-                FirstName = m.User.FirstName,
-                LastName = m.User.LastName,
-                ProfilePictureUrl = m.User.ProfilePictureUrl,
-
-                Role = m.Role.ToString(),
-            })
-            .ToList();
 
         return Ok(members);
     }

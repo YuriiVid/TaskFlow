@@ -51,7 +51,7 @@ export function getErrorMessage(error: FetchBaseQueryError | SerializedError | u
   if (!error) return "Unknown error";
 
   if (isFetchBaseQueryError(error)) {
-    if (error.status === "FETCH_ERROR") return "Network error — check your connection";
+    if (error.status === "FETCH_ERROR") return "Network error - check your connection";
     if (error.status === "PARSING_ERROR") return "Response parse error";
 
     if (error.status === "CUSTOM_ERROR") {

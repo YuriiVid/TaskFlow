@@ -47,7 +47,7 @@ export const BoardMemberCard: React.FC<BoardMemberCardProps> = ({
           <Avatar src={member.profilePictureUrl} name={member.fullName} size="sm" />
         </div>
         <div>
-          <div className="font-medium">{member.fullName}</div>
+          <div className="font-medium">{member.fullName} {currentMember!.id === member.id && ("(you)")}</div>
           <div className="text-sm text-gray-500">{member.email}</div>
         </div>
       </div>

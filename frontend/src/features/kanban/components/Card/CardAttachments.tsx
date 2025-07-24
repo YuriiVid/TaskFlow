@@ -147,7 +147,7 @@ export const CardAttachments: React.FC<CardAttachmentsProps> = ({
           ))}
         </div>
       ) : (
-        <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+        <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
           <Paperclip size={32} className="mx-auto text-gray-400 mb-2" />
           <p className="text-gray-500 text-sm">No attachments yet</p>
           <p className="text-gray-400 text-xs">Click "Add File" to upload your first attachment</p>

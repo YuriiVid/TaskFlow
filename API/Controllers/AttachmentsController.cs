@@ -113,7 +113,7 @@ public class AttachmentsController : Controller
             return NotFound("Card not found");
         }
 
-        var fileUrl = await _fileStorage.StoreFileAsync(File);
+        var fileUrl = await _fileStorage.StoreFileAsync(File, "Attachments");
         var attachment = new Attachment
         {
             FileName = File.FileName,

@@ -68,6 +68,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({ items, size = "sm", 
           type="button"
           role="menuitem"
           onClick={(e) => {
+            e.stopPropagation();
             item.onClick(e);
             setIsOpen(false);
           }}

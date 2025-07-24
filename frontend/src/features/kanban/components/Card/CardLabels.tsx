@@ -70,7 +70,7 @@ export const CardLabels: React.FC<CardLabelsProps> = ({
   };
 
   return (
-    <div className="mt-6">
+    <div className="mt-3">
       <div className="flex items-center gap-3 mb-4">
         <Tag size={18} className="text-gray-600" />
         <h3 className="text-sm font-semibold text-gray-700">Labels</h3>

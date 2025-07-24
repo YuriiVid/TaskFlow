@@ -3,6 +3,7 @@ import { PlusIcon, Edit2, Archive, Trash } from "lucide-react";
 import toast from "react-hot-toast";
 import invariant from "tiny-invariant";
 import { DropdownMenu } from "../DropdownMenu/DropdownMenu";
+import { Modal } from "@shared";
 import BriefCard from "../BriefCard/BriefCard";
 import { Column as ColumnType } from "../../types";
 import { useDeleteColumnMutation, useUpdateColumnMutation } from "../../api";
@@ -58,6 +59,7 @@ const ColumnComponent: React.FC<ColumnProps> = ({ column, boardId, onAddCard }) 
 
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(column.title);
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // Add modal state
 
   const [colState, setColState] = useState<TColumnState>(idleState);
   const scrollableRef = useRef<HTMLDivElement | null>(null);
@@ -183,75 +185,117 @@ const ColumnComponent: React.FC<ColumnProps> = ({ column, boardId, onAddCard }) 
     }
   }, [title, updateColumn, boardId, column.id, column.title]);
 
-  const handleDelete = useCallback(async () => {
-    if (column.cards.length && !window.confirm("Delete column with cards?")) return;
+  // Updated delete handler to show modal instead of window.confirm
+  const handleDeleteClick = useCallback(() => {
+    setShowDeleteModal(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
     try {
       await deleteColumn({ boardId, columnId: column.id }).unwrap();
       toast.success("Column deleted");
+      setShowDeleteModal(false);
     } catch (err: any) {
       console.log(`Failed to delete column ${err}`);
+      toast.error("Failed to delete column");
     }
-  }, [deleteColumn, boardId, column.id, column.cards.length]);
+  }, [deleteColumn, boardId, column.id]);
+
+  const handleCancelDelete = useCallback(() => {
+    setShowDeleteModal(false);
+  }, []);
 
   return (
-    <div ref={outerRef} className="flex flex-col flex-shrink-0 w-72 rounded-lg shadow-md h-fit">
-      <div
-        className={`flex h-full flex-col rounded-lg bg-gray-100 text-neutral-50 ${stateStyles[colState.type]}`}
-        ref={innerRef}
-        data-block-board-panning
-      >
-        <div className={`flex h-full flex-col ${colState.type === "is-column-over" ? "invisible" : ""}`}>
-          <div
-            className="bg-gray-100 rounded-t-lg border-y-2 border-gray-200 p-4 flex flex-row items-center justify-between"
-            ref={headerRef}
-          >
-            {isEditing ? (
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onBlur={handleUpdateTitle}
-                onKeyDown={(e) => e.key === "Enter" && handleUpdateTitle()}
-                className="px-2 py-1 border rounded w-full focus:outline-none focus:border-teal-500 text-gray-900"
-                autoFocus
-              />
-            ) : (
-              <h3 className="font-semibold text-base text-gray-800 flex-1">
-                {column.title} <span className="text-gray-600 text-sm font-normal">({column.cards.length})</span>
-              </h3>
-            )}
-            <DropdownMenu
-              items={[
-                { label: "Edit", onClick: () => setIsEditing(true), icon: <Edit2 size={16} /> },
-                { label: "Archive All", onClick: () => toast("Not implemented"), icon: <Archive size={16} /> },
-                { label: "Delete", onClick: handleDelete, icon: <Trash size={16} />, variant: "danger" as const },
-              ]}
-              position="right"
-              size="sm"
-            />
-          </div>
-
-          <div
-            ref={scrollableRef}
-            className="flex flex-col p-2 [overflow-anchor:none] overflow-y-auto bg-gray-50 min-h-[100px] max-h-[calc(100vh-17rem)] [scrollbar-width:thin]"
-          >
-            <CardList boardId={boardId} column={column} />
-            {colState.type === "is-card-over" && !colState.isOverChildCard && (
-              <BriefCardShadow dragging={colState.dragging} />
-            )}
-          </div>
-
-          <div className="flex flex-row gap-2 p-3 border-t border-gray-200 bg-white rounded-b-lg">
-            <button
-              onClick={() => onAddCard(column.id)}
-              className="flex flex-grow flex-row items-center justify-center gap-1 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-200 transition-colors duration-200 font-medium"
+    <>
+      <div ref={outerRef} className="flex flex-col flex-shrink-0 w-72 rounded-lg shadow-md h-fit">
+        <div
+          className={`flex h-full flex-col rounded-lg bg-gray-100 text-neutral-50 ${stateStyles[colState.type]}`}
+          ref={innerRef}
+          data-block-board-panning
+        >
+          <div className={`flex h-full flex-col ${colState.type === "is-column-over" ? "invisible" : ""}`}>
+            <div
+              className="bg-gray-100 rounded-t-lg border-y-2 border-gray-200 p-4 flex flex-row items-center justify-between"
+              ref={headerRef}
             >
-              <PlusIcon size={16} /> Add Card
-            </button>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={handleUpdateTitle}
+                  onKeyDown={(e) => e.key === "Enter" && handleUpdateTitle()}
+                  className="px-2 py-1 border rounded w-full focus:outline-none focus:border-teal-500 text-gray-900"
+                  autoFocus
+                />
+              ) : (
+                <h3 className="font-semibold text-base text-gray-800 flex-1">
+                  {column.title} <span className="text-gray-600 text-sm font-normal">({column.cards.length})</span>
+                </h3>
+              )}
+              <DropdownMenu
+                items={[
+                  { label: "Edit", onClick: () => setIsEditing(true), icon: <Edit2 size={16} /> },
+                  { label: "Archive All", onClick: () => toast("Not implemented"), icon: <Archive size={16} /> },
+                  {
+                    label: "Delete",
+                    onClick: handleDeleteClick,
+                    icon: <Trash size={16} />,
+                    variant: "danger" as const,
+                  },
+                ]}
+                position="right"
+                size="sm"
+              />
+            </div>
+
+            <div
+              ref={scrollableRef}
+              className="flex flex-col p-2 [overflow-anchor:none] overflow-y-auto bg-gray-50 min-h-[100px] max-h-[calc(100vh-17rem)] [scrollbar-width:thin]"
+            >
+              <CardList boardId={boardId} column={column} />
+              {colState.type === "is-card-over" && !colState.isOverChildCard && (
+                <BriefCardShadow dragging={colState.dragging} />
+              )}
+            </div>
+
+            <div className="flex flex-row gap-2 p-3 border-t border-gray-200 bg-white rounded-b-lg">
+              <button
+                onClick={() => onAddCard(column.id)}
+                className="flex flex-grow flex-row items-center justify-center gap-1 py-2 text-sm text-gray-600 rounded-md hover:bg-gray-200 transition-colors duration-200 font-medium"
+              >
+                <PlusIcon size={16} /> Add Card
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        title="Delete Column"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      >
+        <div className="space-y-3">
+          <p className="text-gray-700">
+            Are you sure you want to delete the column <strong>"{column.title}"</strong>?
+          </p>
+          {column.cards.length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+              <p className="text-yellow-800 text-sm">
+                <strong>Warning:</strong> This column contains {column.cards.length} card
+                {column.cards.length !== 1 ? "s" : ""}. All cards will be permanently deleted.
+              </p>
+            </div>
+          )}
+          <p className="text-sm text-gray-600">This action cannot be undone.</p>
+        </div>
+      </Modal>
+    </>
   );
 };
 

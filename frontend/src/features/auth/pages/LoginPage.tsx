@@ -30,7 +30,7 @@ const LoginPage = () => {
       e.preventDefault();
       try {
         await login(credentials).unwrap();
-        navigate("/");
+        navigate("/boards");
       } catch (err) {
         console.error("Login failed:", err);
       }
