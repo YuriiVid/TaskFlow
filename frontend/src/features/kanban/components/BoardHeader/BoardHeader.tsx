@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { FilterIcon, Share2, SlidersHorizontal, Settings, Tag } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { FilterIcon, Share2, SlidersHorizontal, Settings, Tag, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 import type { FilterOption, SortOption } from "./BoardHeaderControls";
 import { Board } from "@features/kanban/types";
@@ -25,12 +25,28 @@ export const BoardHeader: React.FC<BoardHeaderProps> = ({
   onLabelFilterChange,
 }) => {
   const [isManagementOpen, setIsManagementOpen] = useState(false);
+  const [isLabelDropdownOpen, setIsLabelDropdownOpen] = useState(false);
+  const labelDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (labelDropdownRef.current && !labelDropdownRef.current.contains(event.target as Node)) {
+        setIsLabelDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleShare = () => {
     const inviteLink = `${window.location.origin}/boards/join/${board.id}`;
     navigator.clipboard.writeText(inviteLink);
     toast.success("Board invite link copied!");
   };
+
+  const selectedLabelData = selectedLabel ? board.labels.find((label) => label.id === selectedLabel) : null;
 
   return (
     <>
@@ -49,21 +65,48 @@ export const BoardHeader: React.FC<BoardHeaderProps> = ({
             </select>
           </div>
 
-          {/* Label Filter */}
-          <div className="flex items-center space-x-2">
+          {/* Custom Label Filter Dropdown */}
+          <div className="flex items-center space-x-2 relative" ref={labelDropdownRef}>
             <Tag size={16} className="text-gray-500" />
-            <select
-              className="text-sm text-gray-600 border-none bg-transparent focus:outline-none"
-              onChange={(e) => onLabelFilterChange(Number(e.target.value) || null)}
-              value={selectedLabel || ""}
+            <button
+              className="text-sm text-gray-600 bg-transparent focus:outline-none flex items-center space-x-1 hover:bg-gray-50 px-2 py-1 rounded"
+              onClick={() => setIsLabelDropdownOpen(!isLabelDropdownOpen)}
             >
-              <option value="">All Labels</option>
-              {board.labels.map((label) => (
-                <option key={label.id} value={label.id}>
-                  <LabelPreview title={label.title} color={label.color} />
-                </option>
-              ))}
-            </select>
+              <span className="flex items-center space-x-1 pr-6">
+                {selectedLabelData ? (
+                  <LabelPreview title={selectedLabelData.title} color={selectedLabelData.color} />
+                ) : (
+                  <span>All Labels</span>
+                )}
+              </span>
+              <ChevronDown size={12} className={`transition-transform ${isLabelDropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {isLabelDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-10 min-w-[160px]">
+                <button
+                  className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 flex items-center"
+                  onClick={() => {
+                    onLabelFilterChange(null);
+                    setIsLabelDropdownOpen(false);
+                  }}
+                >
+                  All Labels
+                </button>
+                {board.labels.map((label) => (
+                  <button
+                    key={label.id}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 flex items-center"
+                    onClick={() => {
+                      onLabelFilterChange(label.id);
+                      setIsLabelDropdownOpen(false);
+                    }}
+                  >
+                    <LabelPreview title={label.title} color={label.color} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">

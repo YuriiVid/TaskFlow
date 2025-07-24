@@ -4,6 +4,7 @@ import { useDeleteCardMutation, usePatchCardMutation } from "../../api/cardsApi"
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { BriefCardMenu } from "./BriefCardMenu";
+import { Modal } from "@shared";
 
 import { draggable, dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { preserveOffsetOnSource } from "@atlaskit/pragmatic-drag-and-drop/element/preserve-offset-on-source";
@@ -60,6 +61,7 @@ const BriefCard: React.FC<CardProps> = ({ card, columnId, boardId }) => {
   const outerRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<HTMLDivElement | null>(null);
   const [state, setState] = useState<TCardState>(idle);
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // Add modal state
 
   const handleCardClick = useCallback(
     (e: React.MouseEvent) => {
@@ -69,14 +71,27 @@ const BriefCard: React.FC<CardProps> = ({ card, columnId, boardId }) => {
     [boardId, card.id, navigate]
   );
 
-  const handleDelete = async () => {
+  // Updated to show modal instead of directly deleting
+  const handleDeleteClick = useCallback(() => {
+    setShowDeleteModal(true);
+  }, []);
+
+  // Actual delete function called from modal
+  const handleConfirmDelete = useCallback(async () => {
     try {
       await deleteCard({ boardId, cardId: card.id }).unwrap();
       toast.success("Card deleted successfully! 🗑️");
+      setShowDeleteModal(false);
     } catch (err) {
       console.log(`Failed to delete card ${err}`);
+      toast.error("Failed to delete card");
     }
-  };
+  }, [deleteCard, boardId, card.id]);
+
+  const handleCancelDelete = useCallback(() => {
+    setShowDeleteModal(false);
+  }, []);
+
   const handleToogleCompleted = async (isCompleted: boolean) => {
     try {
       const patches = [{ op: "replace" as const, path: "/isCompleted", value: isCompleted }];
@@ -85,6 +100,7 @@ const BriefCard: React.FC<CardProps> = ({ card, columnId, boardId }) => {
       console.log(`Failed to update ${err}`);
     }
   };
+
   const handleShare = useCallback(() => {
     const cardUrl = `${window.location.origin}/boards/${boardId}/cards/${card.id}`;
     navigator.clipboard.writeText(cardUrl);
@@ -210,7 +226,7 @@ const BriefCard: React.FC<CardProps> = ({ card, columnId, boardId }) => {
                   boardId={boardId}
                   cardId={card.id}
                   navigate={navigate}
-                  onDelete={handleDelete}
+                  onDelete={handleDeleteClick}
                   onShare={handleShare}
                 />
               </div>
@@ -309,6 +325,23 @@ const BriefCard: React.FC<CardProps> = ({ card, columnId, boardId }) => {
     <>
       {renderContent()}
       {state.type === "preview" ? createPortal(renderContent(), state.container) : null}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        title="Delete Card"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      >
+        <div className="space-y-3">
+          <p className="text-gray-700">
+            Are you sure you want to delete the card <strong>"{card.title}"</strong>?
+          </p>
+          <p className="text-sm text-gray-600">This action cannot be undone.</p>
+        </div>
+      </Modal>
     </>
   );
 };

@@ -6,7 +6,7 @@ interface BriefCardMenuProps {
   boardId: number;
   cardId: number;
   navigate: (path: string) => void;
-  onDelete: () => Promise<void>;
+  onDelete: () => void;
   onShare: () => void;
 }
 

@@ -16,6 +16,8 @@ public class BoardMappingProfile : Profile
             .ForMember(dest => dest.Cards, opt => opt.MapFrom(src => src.Cards.OrderBy(card => card.Position)))
             .ReverseMap();
 
+        CreateMap<Column, BriefColumnDto>().ReverseMap();
+
         CreateMap<Board, BriefBoardDto>()
             .ForMember(dest => dest.TasksCount, opt => opt.MapFrom(src => src.Columns.Sum(c => c.Cards.Count)))
             .ForMember(dest => dest.Members, opt => opt.MapFrom(src => src.Members.Select(m => m.User)));

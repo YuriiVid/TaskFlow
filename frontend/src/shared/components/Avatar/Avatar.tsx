@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-const UPLOADS_URL = import.meta.env.UPLOADS_PATH;
+const UPLOADS_URL = import.meta.env.VITE_UPLOADS_PATH || "/Uploads" + "/Avatars";
 interface AvatarProps {
   src?: string | null;
   name: string;

@@ -3,6 +3,8 @@ using API.DTOs;
 using API.Extensions;
 using API.Models;
 using API.Services;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,97 +18,45 @@ public class ColumnsController : Controller
 {
     private readonly AppDbContext _context;
     private readonly IBoardValidationService _boardValidationService;
+    private readonly IMapper _mapper;
 
-    public ColumnsController(AppDbContext context, IBoardValidationService boardValidator)
+    public ColumnsController(AppDbContext context, IBoardValidationService boardValidator, IMapper mapper)
     {
         _boardValidationService = boardValidator;
         _context = context;
+        _mapper = mapper;
     }
 
     [HttpGet]
     public async Task<ActionResult<IList<BriefColumnDto>>> GetColumns(long boardId)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
-        var columns = await _context.Columns.Include(c => c.Cards).Where(c => c.BoardId == boardId).ToListAsync();
+        var briefColumns = await _context
+            .Columns.Where(c => c.BoardId == boardId)
+            .ProjectTo<BriefColumnDto>(_mapper.ConfigurationProvider)
+            .ToListAsync();
 
-        List<BriefColumnDto> briefColumns = columns
-            .Select(c => new BriefColumnDto
-            {
-                Id = c.Id,
-                Title = c.Title,
-                Cards = c.Cards.Select(card => ResolveCardUrl(card, boardId)).ToList(),
-            })
-            .ToList();
         return Ok(briefColumns);
     }
-
-    private string ResolveCardUrl(Card card, long boardId) =>
-        Url.ActionLink(nameof(CardsController.GetCard), "Cards", new { boardId, cardId = card.Id });
 
     [HttpGet("{id}")]
     public async Task<ActionResult<FullColumnDto>> GetColumn(long boardId, long id)
     {
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
-        var column = await _context
-            .Columns.Include(c => c.Cards)
-            .ThenInclude(card => card.Labels)
-            .Include(c => c.Cards)
-            .ThenInclude(card => card.Attachments)
-            .Include(c => c.Cards)
-            .ThenInclude(card => card.Comments)
-            .Include(c => c.Cards)
-            .ThenInclude(card => card.AssignedUsers)
+        var fullColumn = await _context
+            .Columns.AsNoTracking()
             .Where(c => c.Id == id && c.BoardId == boardId)
+            .ProjectTo<FullColumnDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync();
 
-        if (column == null)
+        if (fullColumn == null)
         {
             return NotFound("Column not found");
         }
 
-        var fullColumn = new FullColumnDto
-        {
-            Id = column.Id,
-            Title = column.Title,
-            Cards = column
-                .Cards.Select(card => new BriefCardDto
-                {
-                    Id = card.Id,
-                    Title = card.Title,
-                    Labels = card
-                        .Labels.Select(l => new LabelDto
-                        {
-                            Id = l.Id,
-                            Title = l.Title,
-                            Color = l.Color,
-                        })
-                        .ToList(),
-                    AttachmentsCount = card.Attachments.Count,
-                    DueDate = card.DueDate,
-                    HasDescription = !string.IsNullOrEmpty(card.Description),
-                    Position = card.Position,
-                    AssignedUsers = card
-                        .AssignedUsers.Select(u => new UserDto
-                        {
-                            Id = u.Id,
-                            FirstName = u.FirstName,
-                            LastName = u.LastName,
-                            Email = u.Email,
-                            UserName = u.UserName,
-                        })
-                        .ToList(),
-                    CommentsCount = card.Comments.Count,
-                    IsCompleted = card.IsCompleted,
-                })
-                .ToList(),
-        };
-
         return Ok(fullColumn);
     }
-
-    private string GetUserLink(AppUser user) =>
-        Url.ActionLink(action: nameof(UsersController.GetUser), controller: "Users", values: new { id = user.Id });
 
     [HttpPost]
     public async Task<ActionResult<BriefColumnDto>> CreateColumn(long boardId, UpsertColumnDto dto)

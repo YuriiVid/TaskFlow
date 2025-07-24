@@ -45,6 +45,7 @@ export function UtcDateTimeInput({ utcIso, onChangeUtc, onEnterSave, onEscapeCan
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
+      e.stopPropagation();
       e.preventDefault();
       skipBlurRef.current = true;
       const utcValue = localValue ? new Date(localValue).toISOString() : "";
@@ -57,6 +58,7 @@ export function UtcDateTimeInput({ utcIso, onChangeUtc, onEnterSave, onEscapeCan
         onEnterSave(utcValue);
       }
     } else if (e.key === "Escape") {
+      e.stopPropagation();
       e.preventDefault();
       skipBlurRef.current = true;
 

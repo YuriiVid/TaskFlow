@@ -58,10 +58,12 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
           placeholder="Card title"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
+              e.stopPropagation();
               handleSave();
               (e.target as HTMLInputElement).blur();
             }
             if (e.key === "Escape") {
+              e.stopPropagation();
               handleCancel();
               (e.target as HTMLInputElement).blur();
             }

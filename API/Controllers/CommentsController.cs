@@ -2,10 +2,11 @@ using API.DTOs;
 using API.Extensions;
 using API.Models;
 using API.Services;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using NodaTime;
 
 namespace API.Controllers;
@@ -17,11 +18,13 @@ public class CommentsController : Controller
 {
     private readonly AppDbContext _context;
     private readonly IBoardValidationService _boardValidationService;
+    private readonly IMapper _mapper;
 
-    public CommentsController(AppDbContext context, IBoardValidationService boardValidator)
+    public CommentsController(AppDbContext context, IBoardValidationService boardValidator, IMapper mapper)
     {
         _context = context;
         _boardValidationService = boardValidator;
+        _mapper = mapper;
     }
 
     [HttpGet]
@@ -30,24 +33,9 @@ public class CommentsController : Controller
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var comments = await _context
-            .Comments.Where(c => c.Card.Column.BoardId == boardId && c.CardId == cardId)
-            .Select(c => new CommentDto
-            {
-                Id = c.Id,
-                Content = c.Content,
-                CreatedAt = c.CreatedAt,
-                UpdatedAt = c.UpdatedAt,
-                CardId = c.CardId,
-                User = new UserDto
-                {
-                    Id = c.User.Id,
-                    FirstName = c.User.FirstName,
-                    LastName = c.User.LastName,
-                    ProfilePictureUrl = c.User.ProfilePictureUrl,
-                    UserName = c.User.UserName,
-                    Email = c.User.Email,
-                },
-            })
+            .Comments.AsNoTracking()
+            .Where(c => c.Card.Column.BoardId == boardId && c.CardId == cardId)
+            .ProjectTo<CommentDto>(_mapper.ConfigurationProvider)
             .ToListAsync();
 
         return Ok(comments);
@@ -59,24 +47,9 @@ public class CommentsController : Controller
         await _boardValidationService.ValidateBoardAsync(_context, boardId, User.GetCurrentUserId());
 
         var comment = await _context
-            .Comments.Where(c => c.Id == id && c.CardId == cardId && c.Card.Column.BoardId == boardId)
-            .Select(c => new CommentDto
-            {
-                Id = c.Id,
-                Content = c.Content,
-                CreatedAt = c.CreatedAt,
-                UpdatedAt = c.UpdatedAt,
-                CardId = c.CardId,
-                User = new UserDto
-                {
-                    Id = c.User.Id,
-                    FirstName = c.User.FirstName,
-                    LastName = c.User.LastName,
-                    ProfilePictureUrl = c.User.ProfilePictureUrl,
-                    UserName = c.User.UserName,
-                    Email = c.User.Email,
-                },
-            })
+            .Comments.AsNoTracking()
+            .Where(c => c.Id == id && c.CardId == cardId && c.Card.Column.BoardId == boardId)
+            .ProjectTo<CommentDto>(_mapper.ConfigurationProvider)
             .FirstOrDefaultAsync();
 
         if (comment == null)

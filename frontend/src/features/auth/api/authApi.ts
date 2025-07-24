@@ -23,7 +23,9 @@ export const authApi = api.injectEndpoints({
           const { data } = await queryFulfilled;
           dispatch(setToken(data.jwt));
           dispatch(setUser(data.user));
-        } catch {}
+        } catch (error) {
+          console.log(error);
+        }
       },
     }),
 

@@ -33,16 +33,18 @@ export const CardDescription: React.FC<CardDescriptionProps> = ({ description, o
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
+            e.stopPropagation();
             handleSave();
             (e.target as HTMLTextAreaElement).blur();
           }
           if (e.key === "Escape") {
+            e.stopPropagation();
             handleCancel();
             (e.target as HTMLTextAreaElement).blur();
           }
         }}
         readOnly={!isEditing}
-        className="w-full min-h-[150px] p-4 rounded-lg border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+        className="w-full min-h-[80px] p-4 rounded-lg border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent"
         placeholder="Add a description..."
       />
       {isEditing && (

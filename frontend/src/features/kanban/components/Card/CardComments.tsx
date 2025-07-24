@@ -93,9 +93,11 @@ export const CardComments: React.FC<CardCommentsProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
+                      e.stopPropagation();
                       handleEditComment();
                     }
                     if (e.key === "Escape") {
+                      e.stopPropagation();
                       setEditingComment(null);
                     }
                   }}
@@ -134,10 +136,12 @@ export const CardComments: React.FC<CardCommentsProps> = ({
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
+                  e.stopPropagation();
                   e.preventDefault();
                   handleSendComment();
                 }
                 if (e.key === "Escape") {
+                  e.stopPropagation();
                   setCommentText("");
                 }
               }}
