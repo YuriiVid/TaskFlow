@@ -555,8 +555,9 @@ API/.config/api.env
 API/.config/db.env
 
 # Uploads and templates
-API/Uploads/*
+API/Uploads/Attachments/*
 API/Templates/Email/Build/*
 
 .vscode
 frontend/certs
+API/appsettings.Development.json

@@ -1,0 +1,1 @@
+Folder for saving uploaded files (attachments, avatars, etc.)
