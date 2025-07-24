@@ -117,6 +117,7 @@ To run this project, you will need to add the following environment variables to
 |                 | `VITE_API_URL`                                        | Backend API base URL             | `https://localhost:5001` |
 |                 | `VITE_UPLOADS_PATH`                                   | Path for file uploads (optional) | `/uploads`               |
 
+Also you need to copy apsettings.json content to appsetings.Development.json (if development environment, if production - change "Development to Production), then add your email with app password for email system to work, change database connection string and JWT key. Other changes in configuration are up to you. 
 
 ## Built With
 
