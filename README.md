@@ -1,6 +1,6 @@
 # Taskflow
 
-TaskFlow is a Kanban-style task management application built as a web-based project using ASP.NET Core for the backend and React for the frontend. It allows users to organize work into a board of columns and cards, where each card represents a task that moves through workflow stages.  The backend is a RESTful API built with ASP.NET Core Web API and provides endpoints to create, update, delete and retrieve tasks in a database. The frontend is a single-page application built with React with TypeSscript using Vite, enabling a dynamic and responsive UI. TaskFlow was developed as a demonstration and learning project in ASP.NET Core and ReactJS, showcasing modern full-stack development with container support and continuous deployment practices.
+TaskFlow is a Kanban-style task management application built as a web-based project using ASP.NET Core for the backend and React for the frontend. It allows users to organize work into a board of columns and cards, where each card represents a task that moves through workflow stages.  The backend is a RESTful API built with ASP.NET Core Web API and provides endpoints to create, update, delete and retrieve tasks in a database. The frontend is a single-page application built with React with TypeScript using Vite, enabling a dynamic and responsive UI. TaskFlow was developed as a demonstration and learning project in ASP.NET Core and ReactJS, showcasing modern full-stack development with container support and continuous deployment practices.
 
 ## Getting Started
 
